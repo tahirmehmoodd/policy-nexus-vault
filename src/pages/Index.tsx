@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { mockPolicies } from "@/data/mockPolicies";
 import { Policy } from "@/types/policy";
 import { Sidebar } from "@/components/Sidebar";
@@ -15,7 +15,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { X } from "lucide-react";
+import { X, CalendarIcon } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 const Index = () => {
   const { toast } = useToast();
@@ -23,6 +24,7 @@ const Index = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
   const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
+  const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   
   // Edit Policy State
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -34,6 +36,14 @@ const Index = () => {
   const [editTags, setEditTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState("");
 
+  useEffect(() => {
+    // Show welcome toast when the app first loads
+    toast({
+      title: "Welcome to Security Policy Repository",
+      description: "Browse, manage, and download security policies in one place.",
+    });
+  }, []);
+
   // Filter policies based on search query and category
   const filteredPolicies = policies.filter((policy) => {
     const matchesSearch = 
@@ -44,7 +54,7 @@ const Index = () => {
     
     const matchesCategory = 
       filterCategory === "all" || 
-      policy.type.toLowerCase().includes(filterCategory.toLowerCase());
+      policy.type === filterCategory;
     
     return matchesSearch && matchesCategory;
   });
@@ -67,6 +77,19 @@ const Index = () => {
   
   const handleAddPolicy = (newPolicy: Policy) => {
     setPolicies(prevPolicies => [...prevPolicies, newPolicy]);
+    
+    toast({
+      title: "Policy created successfully",
+      description: `"${newPolicy.title}" has been added to the repository`,
+    });
+  };
+  
+  const handleSidebarCategoryChange = (category: string) => {
+    setFilterCategory(category);
+    // Go back to the list view if a policy is selected
+    if (selectedPolicy) {
+      setSelectedPolicy(null);
+    }
   };
   
   const handleEditPolicy = (policy: Policy) => {
@@ -171,56 +194,102 @@ const Index = () => {
       description: `${selectedPolicy.title} (${version.version_label}) has been downloaded`,
     });
   };
+  
+  const handleOpenUploadDialog = () => {
+    setIsUploadDialogOpen(true);
+  };
 
   return (
     <div className="flex h-screen bg-background">
-      <Sidebar />
+      <Sidebar 
+        onCategoryChange={handleSidebarCategoryChange} 
+        onNewPolicyClick={handleOpenUploadDialog}
+        activeCategory={filterCategory}
+      />
       
       <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="h-16 flex items-center justify-between px-6 border-b">
-          <h1 className="text-2xl font-semibold">Security Policy Repository</h1>
-          <UploadPolicyButton onPolicyCreated={handleAddPolicy} />
+        <header className="h-16 flex items-center justify-between px-6 border-b bg-white shadow-sm z-10">
+          <AnimatePresence mode="wait">
+            {!selectedPolicy ? (
+              <motion.h1 
+                key="repo-title"
+                className="text-2xl font-semibold"
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.2 }}
+              >
+                Security Policy Repository
+              </motion.h1>
+            ) : (
+              <motion.div
+                key="policy-title" 
+                className="flex items-center"
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.2 }}
+              >
+                <Button variant="ghost" size="sm" className="mr-2" onClick={handleBackToList}>
+                  ← Back
+                </Button>
+                <h1 className="text-xl font-medium truncate">
+                  {selectedPolicy.title}
+                </h1>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          
+          <div className="flex items-center gap-2">
+            <UploadPolicyButton onPolicyCreated={handleAddPolicy} />
+          </div>
         </header>
         
-        <main className="flex-1 overflow-auto p-6">
+        <main className="flex-1 overflow-auto p-6 bg-gray-50">
           {!selectedPolicy ? (
-            <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3 }}
+              className="container mx-auto max-w-6xl"
+            >
               <div className="mb-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-                <div className="w-full max-w-md">
+                <div className="w-full max-w-md bg-white rounded-lg shadow-sm">
                   <SearchBar 
                     onSearch={handleSearch} 
                     onFilterChange={handleFilterChange} 
                   />
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">
-                    {filteredPolicies.length} policies found
-                  </p>
+                <div className="bg-white rounded-lg py-2 px-4 shadow-sm border text-sm">
+                  <div className="flex items-center gap-2">
+                    <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">
+                      {filteredPolicies.length} {filteredPolicies.length === 1 ? 'policy' : 'policies'} found
+                    </span>
+                  </div>
                 </div>
               </div>
               
-              {filteredPolicies.length > 0 ? (
-                <PolicyList 
-                  policies={filteredPolicies} 
-                  onPolicyClick={handlePolicyClick}
-                  onEditPolicy={handleEditPolicy}
-                />
-              ) : (
-                <div className="flex flex-col items-center justify-center h-64">
-                  <p className="text-xl text-muted-foreground mb-2">No policies found</p>
-                  <p className="text-sm text-muted-foreground">
-                    Try adjusting your search or filter criteria
-                  </p>
-                </div>
-              )}
-            </>
+              <PolicyList 
+                policies={filteredPolicies} 
+                onPolicyClick={handlePolicyClick}
+                onEditPolicy={handleEditPolicy}
+              />
+            </motion.div>
           ) : (
-            <PolicyDetail 
-              policy={selectedPolicy} 
-              onBack={handleBackToList}
-              onEdit={() => handleEditPolicy(selectedPolicy)}
-              onVersionDownload={handleDownloadVersionInDetail}
-            />
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3 }}
+              className="container mx-auto max-w-4xl"
+            >
+              <PolicyDetail 
+                policy={selectedPolicy} 
+                onBack={handleBackToList}
+                onEdit={() => handleEditPolicy(selectedPolicy)}
+                onVersionDownload={handleDownloadVersionInDetail}
+              />
+            </motion.div>
           )}
         </main>
       </div>
@@ -340,6 +409,24 @@ const Index = () => {
               Save Changes
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Upload Policy Dialog */}
+      <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
+        <DialogContent className="sm:max-w-[525px]">
+          <DialogHeader>
+            <DialogTitle>Upload New Policy</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <UploadPolicyButton 
+              onPolicyCreated={(policy) => {
+                handleAddPolicy(policy);
+                setIsUploadDialogOpen(false);
+              }} 
+              embedMode={true}
+            />
+          </div>
         </DialogContent>
       </Dialog>
     </div>
