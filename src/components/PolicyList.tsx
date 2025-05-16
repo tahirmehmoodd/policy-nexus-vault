@@ -4,7 +4,7 @@ import { PolicyCard } from "@/components/PolicyCard";
 import { Policy } from "@/types/policy";
 import { AnimatePresence, motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { ViewGridIcon, ListBulletIcon } from "lucide-react";
+import { LayoutGrid, List } from "lucide-react";
 
 interface PolicyListProps {
   policies: Policy[];
@@ -25,7 +25,7 @@ export function PolicyList({ policies, onPolicyClick, onEditPolicy }: PolicyList
             className={`${viewMode === 'grid' ? 'bg-background shadow-sm' : ''} rounded-sm`}
             onClick={() => setViewMode('grid')}
           >
-            <ViewGridIcon className="h-4 w-4" />
+            <LayoutGrid className="h-4 w-4" />
             <span className="ml-2">Grid</span>
           </Button>
           <Button 
@@ -34,7 +34,7 @@ export function PolicyList({ policies, onPolicyClick, onEditPolicy }: PolicyList
             className={`${viewMode === 'list' ? 'bg-background shadow-sm' : ''} rounded-sm`}
             onClick={() => setViewMode('list')}
           >
-            <ListBulletIcon className="h-4 w-4" />
+            <List className="h-4 w-4" />
             <span className="ml-2">List</span>
           </Button>
         </div>
