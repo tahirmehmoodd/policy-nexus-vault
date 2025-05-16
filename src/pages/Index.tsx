@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { mockPolicies } from "@/data/mockPolicies";
 import { Policy } from "@/types/policy";
@@ -52,9 +51,10 @@ const Index = () => {
       policy.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
       policy.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
     
+    // Fix for category filtering - ensure exact match with policy.type
     const matchesCategory = 
       filterCategory === "all" || 
-      policy.type === filterCategory;
+      policy.type.toLowerCase() === filterCategory.toLowerCase();
     
     return matchesSearch && matchesCategory;
   });
@@ -90,6 +90,9 @@ const Index = () => {
     if (selectedPolicy) {
       setSelectedPolicy(null);
     }
+    
+    // Debug log to verify the selected category
+    console.log(`Category changed to: ${category}`);
   };
   
   const handleEditPolicy = (policy: Policy) => {
