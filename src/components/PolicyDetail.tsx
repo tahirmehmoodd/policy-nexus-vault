@@ -11,18 +11,52 @@ import {
   FileTextIcon,
   CalendarIcon,
   UserIcon,
-  HistoryIcon
+  HistoryIcon,
+  EditIcon
 } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { Policy } from "@/types/policy";
+import { useToast } from "@/components/ui/use-toast";
 
 interface PolicyDetailProps {
   policy: Policy;
   onBack: () => void;
+  onEdit?: () => void;
+  onVersionDownload?: (versionId: string) => void;
 }
 
-export function PolicyDetail({ policy, onBack }: PolicyDetailProps) {
+export function PolicyDetail({ policy, onBack, onEdit, onVersionDownload }: PolicyDetailProps) {
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("details");
+  
+  const handleDownload = () => {
+    // Create a blob with the policy content
+    const blob = new Blob([JSON.stringify({
+      title: policy.title,
+      description: policy.description,
+      content: policy.content,
+      type: policy.type,
+      tags: policy.tags,
+      version: policy.currentVersion
+    }, null, 2)], { type: "application/json" });
+    
+    // Create a download link
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${policy.title.replace(/\s+/g, "_")}-v${policy.currentVersion}.json`;
+    document.body.appendChild(a);
+    a.click();
+    
+    // Clean up
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    toast({
+      title: "Policy downloaded",
+      description: `${policy.title} has been downloaded as JSON`,
+    });
+  };
 
   return (
     <Card className="w-full max-w-4xl mx-auto">
@@ -32,10 +66,18 @@ export function PolicyDetail({ policy, onBack }: PolicyDetailProps) {
             <ArrowLeftIcon className="h-4 w-4 mr-1" />
             Back
           </Button>
-          <Button variant="outline" size="sm" className="ml-auto">
-            <DownloadIcon className="h-4 w-4 mr-1" />
-            Download
-          </Button>
+          <div className="ml-auto flex gap-2">
+            {onEdit && (
+              <Button variant="outline" size="sm" onClick={onEdit}>
+                <EditIcon className="h-4 w-4 mr-1" />
+                Edit
+              </Button>
+            )}
+            <Button variant="outline" size="sm" onClick={handleDownload}>
+              <DownloadIcon className="h-4 w-4 mr-1" />
+              Download
+            </Button>
+          </div>
         </div>
         
         <div className="flex items-start gap-3">
@@ -129,7 +171,11 @@ export function PolicyDetail({ policy, onBack }: PolicyDetailProps) {
                           {format(new Date(version.created_at), "MMM d, yyyy")} by {version.edited_by}
                         </p>
                       </div>
-                      <Button variant="ghost" size="sm">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => onVersionDownload && onVersionDownload(version.version_id)}
+                      >
                         <DownloadIcon className="h-4 w-4 mr-1" />
                         Download
                       </Button>

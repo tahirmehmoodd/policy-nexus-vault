@@ -2,16 +2,51 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { FileTextIcon, DownloadIcon } from "lucide-react";
+import { FileTextIcon, DownloadIcon, EditIcon } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Policy } from "@/types/policy";
+import { useToast } from "@/components/ui/use-toast";
 
 interface PolicyCardProps {
   policy: Policy;
   onClick: () => void;
+  onEdit?: () => void;
 }
 
-export function PolicyCard({ policy, onClick }: PolicyCardProps) {
+export function PolicyCard({ policy, onClick, onEdit }: PolicyCardProps) {
+  const { toast } = useToast();
+  
+  const handleDownload = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    
+    // Create a blob with the policy content
+    const blob = new Blob([JSON.stringify({
+      title: policy.title,
+      description: policy.description,
+      content: policy.content,
+      type: policy.type,
+      tags: policy.tags,
+      version: policy.currentVersion
+    }, null, 2)], { type: "application/json" });
+    
+    // Create a download link
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${policy.title.replace(/\s+/g, "_")}-v${policy.currentVersion}.json`;
+    document.body.appendChild(a);
+    a.click();
+    
+    // Clean up
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    toast({
+      title: "Policy downloaded",
+      description: `${policy.title} has been downloaded as JSON`,
+    });
+  };
+
   return (
     <Card className="h-full flex flex-col hover:shadow-md transition-shadow">
       <CardHeader className="pb-2">
@@ -49,10 +84,21 @@ export function PolicyCard({ policy, onClick }: PolicyCardProps) {
         <div className="text-xs text-muted-foreground">
           v{policy.currentVersion}
         </div>
-        <Button variant="ghost" size="sm">
-          <DownloadIcon className="h-4 w-4 mr-1" />
-          Download
-        </Button>
+        <div className="flex gap-2">
+          {onEdit && (
+            <Button variant="ghost" size="sm" onClick={(e) => {
+              e.stopPropagation();
+              onEdit();
+            }}>
+              <EditIcon className="h-4 w-4 mr-1" />
+              Edit
+            </Button>
+          )}
+          <Button variant="ghost" size="sm" onClick={handleDownload}>
+            <DownloadIcon className="h-4 w-4 mr-1" />
+            Download
+          </Button>
+        </div>
       </CardFooter>
     </Card>
   );

@@ -6,9 +6,10 @@ import { Policy } from "@/types/policy";
 interface PolicyListProps {
   policies: Policy[];
   onPolicyClick: (policy: Policy) => void;
+  onEditPolicy?: (policy: Policy) => void;
 }
 
-export function PolicyList({ policies, onPolicyClick }: PolicyListProps) {
+export function PolicyList({ policies, onPolicyClick, onEditPolicy }: PolicyListProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {policies.map((policy) => (
@@ -16,6 +17,7 @@ export function PolicyList({ policies, onPolicyClick }: PolicyListProps) {
           key={policy.policy_id}
           policy={policy}
           onClick={() => onPolicyClick(policy)}
+          onEdit={onEditPolicy ? () => onEditPolicy(policy) : undefined}
         />
       ))}
     </div>
