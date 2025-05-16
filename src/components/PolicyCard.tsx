@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { FileTextIcon, DownloadIcon, EditIcon, EyeIcon, TagIcon, CalendarIcon, ClockIcon } from "lucide-react";
+import { FileTextIcon, DownloadIcon, EditIcon, EyeIcon, TagIcon, ClockIcon } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Policy } from "@/types/policy";
 import { useToast } from "@/components/ui/use-toast";
@@ -205,7 +205,7 @@ export function PolicyCard({ policy, onClick, onEdit, viewMode = 'grid' }: Polic
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Download Policy</TooltipContent>
-            </TooltipProvider>
+            </Tooltip>
           </TooltipProvider>
         </div>
       </CardFooter>
