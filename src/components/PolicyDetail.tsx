@@ -17,6 +17,12 @@ import {
 import { formatDistanceToNow, format } from "date-fns";
 import { Policy } from "@/types/policy";
 import { useToast } from "@/components/ui/use-toast";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface PolicyDetailProps {
   policy: Policy;
@@ -29,7 +35,7 @@ export function PolicyDetail({ policy, onBack, onEdit, onVersionDownload }: Poli
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("details");
   
-  const handleDownload = () => {
+  const handleDownloadJSON = () => {
     // Create a blob with the policy content
     const blob = new Blob([JSON.stringify({
       title: policy.title,
@@ -40,22 +46,114 @@ export function PolicyDetail({ policy, onBack, onEdit, onVersionDownload }: Poli
       version: policy.currentVersion
     }, null, 2)], { type: "application/json" });
     
+    downloadFile(blob, `${policy.title.replace(/\s+/g, "_")}-v${policy.currentVersion}.json`);
+    
+    toast({
+      title: "Policy downloaded",
+      description: `${policy.title} has been downloaded as JSON`,
+    });
+  };
+  
+  const handleDownloadText = () => {
+    // Create a text version of the policy
+    const textContent = `${policy.title}
+Version: ${policy.currentVersion}
+Type: ${policy.type}
+Status: ${policy.status}
+Created by: ${policy.author}
+Last updated: ${format(new Date(policy.updated_at), "MMM d, yyyy")}
+Tags: ${policy.tags.join(", ")}
+
+Description:
+${policy.description}
+
+Content:
+${policy.content}`;
+    
+    const blob = new Blob([textContent], { type: "text/plain" });
+    downloadFile(blob, `${policy.title.replace(/\s+/g, "_")}-v${policy.currentVersion}.txt`);
+    
+    toast({
+      title: "Policy downloaded",
+      description: `${policy.title} has been downloaded as plain text`,
+    });
+  };
+  
+  const handleDownloadPDF = () => {
+    // Create a simple PDF using window.print() functionality
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      const content = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>${policy.title}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 40px; }
+            h1 { color: #333; }
+            .metadata { margin-bottom: 20px; color: #666; }
+            .content { line-height: 1.6; }
+            .header { border-bottom: 1px solid #eee; padding-bottom: 20px; margin-bottom: 20px; }
+            .footer { margin-top: 40px; font-size: 12px; color: #999; border-top: 1px solid #eee; padding-top: 20px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>${policy.title}</h1>
+            <div class="metadata">
+              <p><strong>Version:</strong> ${policy.currentVersion}</p>
+              <p><strong>Type:</strong> ${policy.type}</p>
+              <p><strong>Status:</strong> ${policy.status}</p>
+              <p><strong>Created by:</strong> ${policy.author}</p>
+              <p><strong>Last updated:</strong> ${format(new Date(policy.updated_at), "MMM d, yyyy")}</p>
+              <p><strong>Tags:</strong> ${policy.tags.join(", ")}</p>
+            </div>
+          </div>
+          <div class="description">
+            <h2>Description</h2>
+            <p>${policy.description}</p>
+          </div>
+          <div class="content">
+            <h2>Policy Content</h2>
+            <p>${policy.content.replace(/\n/g, '<br>')}</p>
+          </div>
+          <div class="footer">
+            <p>Generated on ${format(new Date(), "MMM d, yyyy 'at' h:mm a")}</p>
+          </div>
+        </body>
+        </html>
+      `;
+      
+      printWindow.document.open();
+      printWindow.document.write(content);
+      printWindow.document.close();
+      
+      // Wait for content to load before printing
+      setTimeout(() => {
+        printWindow.print();
+        // Close the window after print dialog is closed (optional)
+        // printWindow.close();
+      }, 250);
+    }
+    
+    toast({
+      title: "PDF being prepared",
+      description: "The print dialog will open to save your policy as PDF",
+    });
+  };
+  
+  const downloadFile = (blob: Blob, fileName: string) => {
     // Create a download link
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${policy.title.replace(/\s+/g, "_")}-v${policy.currentVersion}.json`;
+    a.download = fileName;
     document.body.appendChild(a);
     a.click();
     
     // Clean up
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    
-    toast({
-      title: "Policy downloaded",
-      description: `${policy.title} has been downloaded as JSON`,
-    });
   };
 
   return (
@@ -73,10 +171,28 @@ export function PolicyDetail({ policy, onBack, onEdit, onVersionDownload }: Poli
                 Edit
               </Button>
             )}
-            <Button variant="outline" size="sm" onClick={handleDownload}>
-              <DownloadIcon className="h-4 w-4 mr-1" />
-              Download
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <DownloadIcon className="h-4 w-4 mr-1" />
+                  Download
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleDownloadJSON}>
+                  <FileTextIcon className="mr-2 h-4 w-4" />
+                  <span>JSON</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleDownloadText}>
+                  <FileTextIcon className="mr-2 h-4 w-4" />
+                  <span>Plain Text</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleDownloadPDF}>
+                  <FileTextIcon className="mr-2 h-4 w-4" />
+                  <span>PDF</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
         
