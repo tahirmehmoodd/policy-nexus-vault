@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -240,7 +239,7 @@ ${policy.content}`;
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
-                </DropdownMenuTrigger>
+                </TooltipTrigger>
                 <TooltipContent>Download</TooltipContent>
               </Tooltip>
             </TooltipProvider>
