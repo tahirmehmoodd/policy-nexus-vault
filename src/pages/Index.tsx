@@ -38,7 +38,7 @@ const Index = () => {
   useEffect(() => {
     // Show welcome toast when the app first loads
     toast({
-      title: "Welcome to Security Policy Repository",
+      title: "Welcome to Tahir's Security Policy Repository",
       description: "Browse, manage, and download security policies in one place.",
     });
   }, []);
@@ -222,7 +222,7 @@ const Index = () => {
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.2 }}
               >
-                Security Policy Repository
+                Tahir's Security Policy Repository
               </motion.h1>
             ) : (
               <motion.div

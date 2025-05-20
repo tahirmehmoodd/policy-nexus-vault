@@ -15,7 +15,6 @@ import {
   SettingsIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  LayoutDashboardIcon,
   BookOpenIcon,
   BarChartIcon
 } from "lucide-react";
@@ -85,7 +84,7 @@ export function Sidebar({ className, onCategoryChange, onNewPolicyClick, activeC
       <div className="flex items-center p-4 h-16">
         {!collapsed && (
           <h2 className="text-xl font-semibold text-primary flex items-center">
-            <ShieldIcon className="mr-2 h-6 w-6" /> SecPolicy
+            <ShieldIcon className="mr-2 h-6 w-6" /> Tahir's SecPolicy
           </h2>
         )}
         {collapsed && <ShieldIcon className="h-6 w-6 text-primary mx-auto" />}
@@ -200,6 +199,9 @@ export function Sidebar({ className, onCategoryChange, onNewPolicyClick, activeC
           <SettingsIcon className={cn("h-5 w-5", collapsed ? "mx-auto" : "mr-2")} />
           {!collapsed && <span>Settings</span>}
         </Button>
+      </div>
+      <div className="p-2 text-xs text-center text-muted-foreground">
+        {!collapsed && "© 2025 Tahir Mehmood"}
       </div>
     </div>
   );
