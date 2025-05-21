@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { mockPolicies } from "@/data/mockPolicies";
 import { Policy } from "@/types/policy";
@@ -23,6 +22,23 @@ import { Badge } from "@/components/ui/badge";
 import { X, CalendarIcon, LayoutDashboard, ListFilter } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+// Helper function to map category id to policy type
+const mapCategoryToType = (categoryId: string): string => {
+  switch(categoryId) {
+    case 'access': return 'Access Control';
+    case 'data': return 'Data Classification';
+    case 'network': return 'Network Security';
+    case 'user': return 'User Account';
+    case 'incident': return 'Incident Handling';
+    default: return categoryId;
+  }
+};
+
+// Helper function to get category name
+const getCategoryName = (categoryId: string) => {
+  return mapCategoryToType(categoryId);
+};
 
 const Index = () => {
   const { toast } = useToast();
@@ -124,18 +140,6 @@ const Index = () => {
     return matchesSearch && matchesCategory && matchesTags && 
            matchesDateFrom && matchesDateTo && matchesActiveStatus;
   });
-
-  // Helper function to map category id to policy type
-  const mapCategoryToType = (categoryId: string): string => {
-    switch(categoryId) {
-      case 'access': return 'Access Control';
-      case 'data': return 'Data Classification';
-      case 'network': return 'Network Security';
-      case 'user': return 'User Account';
-      case 'incident': return 'Incident Handling';
-      default: return categoryId;
-    }
-  };
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -416,18 +420,6 @@ const Index = () => {
       title: "Tags added",
       description: `Added ${tags.length} tags to ${selectedPolicyIds.length} policies`,
     });
-  };
-  
-  // Helper function to get category name
-  const getCategoryName = (categoryId: string) => {
-    switch(categoryId) {
-      case 'access': return 'Access Control';
-      case 'data': return 'Data Classification';
-      case 'network': return 'Network Security';
-      case 'user': return 'User Account';
-      case 'incident': return 'Incident Handling';
-      default: return categoryId;
-    }
   };
 
   return (
