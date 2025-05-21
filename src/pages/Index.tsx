@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { mockPolicies } from "@/data/mockPolicies";
 import { Policy } from "@/types/policy";
@@ -6,6 +7,11 @@ import { SearchBar } from "@/components/SearchBar";
 import { PolicyList } from "@/components/PolicyList";
 import { PolicyDetail } from "@/components/PolicyDetail";
 import { UploadPolicyButton } from "@/components/UploadPolicyButton";
+import { Dashboard } from "@/components/Dashboard";
+import { AdvancedSearchDialog, SearchCriteria } from "@/components/AdvancedSearchDialog";
+import { VersionCompareDialog } from "@/components/VersionCompareDialog";
+import { TagManagement } from "@/components/TagManagement";
+import { BatchOperations } from "@/components/BatchOperations";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,8 +20,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { X, CalendarIcon } from "lucide-react";
+import { X, CalendarIcon, LayoutDashboard, ListFilter } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Index = () => {
   const { toast } = useToast();
@@ -24,6 +31,19 @@ const Index = () => {
   const [filterCategory, setFilterCategory] = useState("all");
   const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
+  const [isTagManagementOpen, setIsTagManagementOpen] = useState(false);
+  const [isCompareVersionOpen, setIsCompareVersionOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<"list" | "dashboard">("list");
+  const [selectedPolicyIds, setSelectedPolicyIds] = useState<string[]>([]);
+  
+  // Advanced search
+  const [advancedSearchCriteria, setAdvancedSearchCriteria] = useState<SearchCriteria>({
+    query: "",
+    category: "all",
+    tags: [],
+    onlyActive: false,
+    searchInContent: true
+  });
   
   // Edit Policy State
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -43,20 +63,62 @@ const Index = () => {
     });
   }, []);
 
-  // Filter policies based on search query and category
+  // Reset search when changing view modes
+  useEffect(() => {
+    if (viewMode === "dashboard") {
+      setSearchQuery("");
+      setFilterCategory("all");
+      setAdvancedSearchCriteria({
+        query: "",
+        category: "all",
+        tags: [],
+        onlyActive: false,
+        searchInContent: true
+      });
+    }
+  }, [viewMode]);
+
+  // Apply advanced search criteria
+  const applyAdvancedSearch = (criteria: SearchCriteria) => {
+    setAdvancedSearchCriteria(criteria);
+    setSearchQuery(criteria.query);
+    setFilterCategory(criteria.category);
+  };
+
+  // Filter policies based on search query, category, and advanced criteria
   const filteredPolicies = policies.filter((policy) => {
+    // Base search
     const matchesSearch = 
       searchQuery.trim() === "" || 
       policy.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       policy.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      policy.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+      policy.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (advancedSearchCriteria.searchInContent && policy.content.toLowerCase().includes(searchQuery.toLowerCase()));
     
-    // Fix for category filtering - ensure exact match with policy.type
+    // Category filter
     const matchesCategory = 
       filterCategory === "all" || 
       policy.type.toLowerCase() === filterCategory.toLowerCase();
     
-    return matchesSearch && matchesCategory;
+    // Advanced filters
+    const matchesTags = 
+      advancedSearchCriteria.tags.length === 0 || 
+      advancedSearchCriteria.tags.some(tag => policy.tags.includes(tag));
+    
+    const matchesDateFrom = 
+      !advancedSearchCriteria.dateFrom || 
+      new Date(policy.updated_at) >= new Date(advancedSearchCriteria.dateFrom);
+    
+    const matchesDateTo = 
+      !advancedSearchCriteria.dateTo || 
+      new Date(policy.updated_at) <= new Date(advancedSearchCriteria.dateTo);
+    
+    const matchesActiveStatus = 
+      !advancedSearchCriteria.onlyActive || 
+      policy.status === "active";
+    
+    return matchesSearch && matchesCategory && matchesTags && 
+           matchesDateFrom && matchesDateTo && matchesActiveStatus;
   });
 
   const handleSearch = (query: string) => {
@@ -142,6 +204,17 @@ const Index = () => {
     };
     
     // Update policies array
+    updatePolicy(updatedPolicy);
+    
+    toast({
+      title: "Policy updated",
+      description: `${updatedPolicy.title} has been updated to version ${updatedPolicy.currentVersion}`,
+    });
+    
+    setIsEditDialogOpen(false);
+  };
+  
+  const updatePolicy = (updatedPolicy: Policy) => {
     setPolicies(prevPolicies => 
       prevPolicies.map(p => 
         p.policy_id === updatedPolicy.policy_id ? updatedPolicy : p
@@ -152,13 +225,6 @@ const Index = () => {
     if (selectedPolicy?.policy_id === updatedPolicy.policy_id) {
       setSelectedPolicy(updatedPolicy);
     }
-    
-    toast({
-      title: "Policy updated",
-      description: `${updatedPolicy.title} has been updated to version ${updatedPolicy.currentVersion}`,
-    });
-    
-    setIsEditDialogOpen(false);
   };
   
   const handleDownloadVersionInDetail = (versionId: string) => {
@@ -200,6 +266,149 @@ const Index = () => {
   
   const handleOpenUploadDialog = () => {
     setIsUploadDialogOpen(true);
+  };
+  
+  const handleToggleView = (view: string) => {
+    setViewMode(view as "list" | "dashboard");
+    if (selectedPolicy) {
+      setSelectedPolicy(null);
+    }
+  };
+  
+  const handleCompareVersions = (policy: Policy) => {
+    setSelectedPolicy(policy);
+    setIsCompareVersionOpen(true);
+  };
+  
+  // Batch Selection Handlers
+  const handleSelectAll = () => {
+    setSelectedPolicyIds(filteredPolicies.map(p => p.policy_id));
+  };
+  
+  const handleClearSelection = () => {
+    setSelectedPolicyIds([]);
+  };
+  
+  const handleToggleSelection = (policyId: string) => {
+    setSelectedPolicyIds(prev => 
+      prev.includes(policyId)
+        ? prev.filter(id => id !== policyId)
+        : [...prev, policyId]
+    );
+  };
+  
+  const handleDownloadSelected = (format: string) => {
+    const selectedPolicies = policies.filter(p => selectedPolicyIds.includes(p.policy_id));
+    
+    let content: string;
+    let mimeType: string;
+    let fileExtension: string;
+    
+    switch (format) {
+      case "json":
+        content = JSON.stringify(selectedPolicies, null, 2);
+        mimeType = "application/json";
+        fileExtension = "json";
+        break;
+      case "text":
+        content = selectedPolicies.map(p => 
+          `# ${p.title}\n\nCategory: ${p.type}\nVersion: ${p.currentVersion}\n\n${p.description}\n\n${p.content}`
+        ).join("\n\n---\n\n");
+        mimeType = "text/plain";
+        fileExtension = "txt";
+        break;
+      case "pdf":
+        // In a real app, this would generate a PDF
+        // For now, we'll just use text
+        content = selectedPolicies.map(p => 
+          `# ${p.title}\n\nCategory: ${p.type}\nVersion: ${p.currentVersion}\n\n${p.description}\n\n${p.content}`
+        ).join("\n\n---\n\n");
+        mimeType = "text/plain";
+        fileExtension = "txt";
+        break;
+      default:
+        content = JSON.stringify(selectedPolicies, null, 2);
+        mimeType = "application/json";
+        fileExtension = "json";
+    }
+    
+    // Create a blob and download
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `selected_policies.${fileExtension}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    toast({
+      title: "Policies downloaded",
+      description: `${selectedPolicyIds.length} policies have been downloaded as ${format.toUpperCase()}`,
+    });
+  };
+  
+  const handleCategorizeSelected = (category: string) => {
+    // Update all selected policies with the new category
+    const updatedPolicies = policies.map(policy => {
+      if (selectedPolicyIds.includes(policy.policy_id)) {
+        return {
+          ...policy,
+          type: category,
+          updated_at: new Date().toISOString()
+        };
+      }
+      return policy;
+    });
+    
+    setPolicies(updatedPolicies);
+    
+    toast({
+      title: "Categories updated",
+      description: `${selectedPolicyIds.length} policies have been moved to ${getCategoryName(category)}`,
+    });
+  };
+  
+  const handleTagSelected = (tags: string[]) => {
+    // Add tags to all selected policies
+    const updatedPolicies = policies.map(policy => {
+      if (selectedPolicyIds.includes(policy.policy_id)) {
+        // Add only tags that don't already exist
+        const newTags = [...policy.tags];
+        tags.forEach(tag => {
+          if (!newTags.includes(tag)) {
+            newTags.push(tag);
+          }
+        });
+        
+        return {
+          ...policy,
+          tags: newTags,
+          updated_at: new Date().toISOString()
+        };
+      }
+      return policy;
+    });
+    
+    setPolicies(updatedPolicies);
+    
+    toast({
+      title: "Tags added",
+      description: `Added ${tags.length} tags to ${selectedPolicyIds.length} policies`,
+    });
+  };
+  
+  // Helper function to get category name
+  const getCategoryName = (categoryId: string) => {
+    switch(categoryId) {
+      case 'access': return 'Access Control';
+      case 'data': return 'Data Classification';
+      case 'network': return 'Network Security';
+      case 'user': return 'User Account';
+      case 'incident': return 'Incident Handling';
+      default: return categoryId;
+    }
   };
 
   return (
@@ -244,6 +453,30 @@ const Index = () => {
           </AnimatePresence>
           
           <div className="flex items-center gap-2">
+            {!selectedPolicy && (
+              <Tabs value={viewMode} onValueChange={handleToggleView} className="mr-2">
+                <TabsList>
+                  <TabsTrigger value="dashboard" className="flex items-center gap-1.5">
+                    <LayoutDashboard className="h-4 w-4" />
+                    Dashboard
+                  </TabsTrigger>
+                  <TabsTrigger value="list" className="flex items-center gap-1.5">
+                    <ListFilter className="h-4 w-4" />
+                    List View
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            )}
+            
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setIsTagManagementOpen(true)}
+              className="hidden sm:flex"
+            >
+              Manage Tags
+            </Button>
+            
             <UploadPolicyButton onPolicyCreated={handleAddPolicy} />
           </div>
         </header>
@@ -256,28 +489,54 @@ const Index = () => {
               transition={{ duration: 0.3 }}
               className="container mx-auto max-w-6xl"
             >
-              <div className="mb-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-                <div className="w-full max-w-md bg-white rounded-lg shadow-sm">
-                  <SearchBar 
-                    onSearch={handleSearch} 
-                    onFilterChange={handleFilterChange} 
-                  />
-                </div>
-                <div className="bg-white rounded-lg py-2 px-4 shadow-sm border text-sm">
-                  <div className="flex items-center gap-2">
-                    <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">
-                      {filteredPolicies.length} {filteredPolicies.length === 1 ? 'policy' : 'policies'} found
-                    </span>
+              {viewMode === "list" ? (
+                // LIST VIEW
+                <>
+                  <div className="mb-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+                    <div className="w-full max-w-md bg-white rounded-lg shadow-sm">
+                      <SearchBar 
+                        onSearch={handleSearch} 
+                        onFilterChange={handleFilterChange} 
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <AdvancedSearchDialog onSearch={applyAdvancedSearch} />
+                      <div className="bg-white rounded-lg py-2 px-4 shadow-sm border text-sm">
+                        <div className="flex items-center gap-2">
+                          <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-muted-foreground">
+                            {filteredPolicies.length} {filteredPolicies.length === 1 ? 'policy' : 'policies'} found
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-              
-              <PolicyList 
-                policies={filteredPolicies} 
-                onPolicyClick={handlePolicyClick}
-                onEditPolicy={handleEditPolicy}
-              />
+                  
+                  <BatchOperations
+                    policies={filteredPolicies}
+                    selectedIds={selectedPolicyIds}
+                    onSelectAll={handleSelectAll}
+                    onClearSelection={handleClearSelection}
+                    onToggleSelection={handleToggleSelection}
+                    onDownloadSelected={handleDownloadSelected}
+                    onCategorizeSelected={handleCategorizeSelected}
+                    onTagSelected={handleTagSelected}
+                  />
+                  
+                  <PolicyList 
+                    policies={filteredPolicies} 
+                    onPolicyClick={handlePolicyClick}
+                    onEditPolicy={handleEditPolicy}
+                  />
+                </>
+              ) : (
+                // DASHBOARD VIEW
+                <Dashboard 
+                  policies={policies}
+                  onViewPolicy={handlePolicyClick}
+                  onUploadPolicy={handleOpenUploadDialog}
+                />
+              )}
             </motion.div>
           ) : (
             <motion.div
@@ -291,6 +550,7 @@ const Index = () => {
                 onBack={handleBackToList}
                 onEdit={() => handleEditPolicy(selectedPolicy)}
                 onVersionDownload={handleDownloadVersionInDetail}
+                onCompareVersions={() => setIsCompareVersionOpen(true)}
               />
             </motion.div>
           )}
@@ -414,6 +674,24 @@ const Index = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* Version Compare Dialog */}
+      {selectedPolicy && (
+        <VersionCompareDialog
+          policy={selectedPolicy}
+          isOpen={isCompareVersionOpen}
+          onOpenChange={setIsCompareVersionOpen}
+          onVersionDownload={handleDownloadVersionInDetail}
+        />
+      )}
+      
+      {/* Tag Management Dialog */}
+      <TagManagement
+        isOpen={isTagManagementOpen}
+        onOpenChange={setIsTagManagementOpen}
+        policies={policies}
+        onUpdatePolicy={updatePolicy}
+      />
       
       {/* Upload Policy Dialog */}
       <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
