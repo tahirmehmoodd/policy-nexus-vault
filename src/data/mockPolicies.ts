@@ -379,5 +379,61 @@ Requirements for applications installed on devices that access company data.`,
         edited_by: "Mark Williams"
       }
     ]
+  },
+  {
+    policy_id: "pol-007",
+    title: "User Account Management Policy",
+    description: "Guidelines for creating, modifying, and terminating user accounts across organization systems.",
+    type: "User Account",
+    status: "active",
+    created_at: randomDate(),
+    updated_at: randomDate(),
+    author: "David Chang",
+    content: `# User Account Management Policy
+
+## 1. Purpose
+This policy establishes the requirements for managing user accounts to ensure proper access control and accountability.
+
+## 2. Scope
+This policy applies to all user accounts created on any organizational system, application, or service.
+
+## 3. Account Creation
+* Formal request process
+* Approval requirements
+* Documentation standards
+* Default privilege settings
+
+## 4. Account Modifications
+* Process for changing access rights
+* Role changes and promotions
+* Department transfers
+
+## 5. Account Termination
+* Process for disabling accounts when employees leave
+* Timeframes for account deactivation
+* Data preservation requirements
+
+## 6. Account Reviews
+* Quarterly reviews of active accounts
+* Privilege right-sizing
+* Dormant account identification`,
+    currentVersion: "1.1",
+    tags: ["user", "account", "access management"],
+    versions: [
+      {
+        version_id: "v-007-1",
+        version_label: "v1.1",
+        description: "Added section on contractor accounts",
+        created_at: randomDate(),
+        edited_by: "David Chang"
+      },
+      {
+        version_id: "v-007-0",
+        version_label: "v1.0",
+        description: "Initial policy creation",
+        created_at: randomDate(new Date(Date.now() - 280 * 24 * 60 * 60 * 1000)),
+        edited_by: "David Chang"
+      }
+    ]
   }
 ];

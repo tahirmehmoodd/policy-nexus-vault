@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { mockPolicies } from "@/data/mockPolicies";
 import { Policy } from "@/types/policy";
@@ -87,6 +86,9 @@ const Index = () => {
 
   // Filter policies based on search query, category, and advanced criteria
   const filteredPolicies = policies.filter((policy) => {
+    // For category filter, we need to normalize the policy type to match our category ids
+    const policyTypeNormalized = policy.type.toLowerCase().replace(/\s+/g, '');
+    
     // Base search
     const matchesSearch = 
       searchQuery.trim() === "" || 
@@ -95,10 +97,11 @@ const Index = () => {
       policy.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (advancedSearchCriteria.searchInContent && policy.content.toLowerCase().includes(searchQuery.toLowerCase()));
     
-    // Category filter
+    // Category filter - check if category matches or if we're showing all policies
     const matchesCategory = 
       filterCategory === "all" || 
-      policy.type.toLowerCase() === filterCategory.toLowerCase();
+      policyTypeNormalized.includes(filterCategory.toLowerCase()) ||
+      mapCategoryToType(filterCategory).toLowerCase() === policy.type.toLowerCase();
     
     // Advanced filters
     const matchesTags = 
@@ -120,6 +123,18 @@ const Index = () => {
     return matchesSearch && matchesCategory && matchesTags && 
            matchesDateFrom && matchesDateTo && matchesActiveStatus;
   });
+
+  // Helper function to map category id to policy type
+  const mapCategoryToType = (categoryId: string): string => {
+    switch(categoryId) {
+      case 'access': return 'Access Control';
+      case 'data': return 'Data Classification';
+      case 'network': return 'Network Security';
+      case 'user': return 'User Account';
+      case 'incident': return 'Incident Handling';
+      default: return categoryId;
+    }
+  };
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -148,13 +163,16 @@ const Index = () => {
   
   const handleSidebarCategoryChange = (category: string) => {
     setFilterCategory(category);
+    
     // Go back to the list view if a policy is selected
     if (selectedPolicy) {
       setSelectedPolicy(null);
     }
     
-    // Debug log to verify the selected category
-    console.log(`Category changed to: ${category}`);
+    toast({
+      title: "Category filtered",
+      description: `Now showing ${category === 'all' ? 'all policies' : mapCategoryToType(category) + ' policies'}`,
+    });
   };
   
   const handleEditPolicy = (policy: Policy) => {
@@ -415,7 +433,7 @@ const Index = () => {
     <div className="flex h-screen bg-background">
       <Sidebar 
         onCategoryChange={handleSidebarCategoryChange} 
-        onNewPolicyClick={handleOpenUploadDialog}
+        onNewPolicyClick={() => setIsUploadDialogOpen(true)}
         activeCategory={filterCategory}
       />
       
@@ -534,7 +552,7 @@ const Index = () => {
                 <Dashboard 
                   policies={policies}
                   onViewPolicy={handlePolicyClick}
-                  onUploadPolicy={handleOpenUploadDialog}
+                  onUploadPolicy={() => setIsUploadDialogOpen(true)}
                 />
               )}
             </motion.div>
@@ -712,6 +730,173 @@ const Index = () => {
       </Dialog>
     </div>
   );
+  
+  // Define this function to make TS happy, even though we're not showing its implementation
+  function handleToggleView(view: string): void {
+    setViewMode(view as "list" | "dashboard");
+    if (selectedPolicy) {
+      setSelectedPolicy(null);
+    }
+  }
+  
+  // These functions are referenced above but defined later in the original file
+  function handleSelectAll() {
+    setSelectedPolicyIds(filteredPolicies.map(p => p.policy_id));
+  }
+  function handleClearSelection() {
+    setSelectedPolicyIds([]);
+  }
+  function handleToggleSelection(policyId: string) {
+    setSelectedPolicyIds(prev => 
+      prev.includes(policyId)
+        ? prev.filter(id => id !== policyId)
+        : [...prev, policyId]
+    );
+  }
+  function handleDownloadSelected(format: string) {
+    const selectedPolicies = policies.filter(p => selectedPolicyIds.includes(p.policy_id));
+    
+    let content: string;
+    let mimeType: string;
+    let fileExtension: string;
+    
+    switch (format) {
+      case "json":
+        content = JSON.stringify(selectedPolicies, null, 2);
+        mimeType = "application/json";
+        fileExtension = "json";
+        break;
+      case "text":
+        content = selectedPolicies.map(p => 
+          `# ${p.title}\n\nCategory: ${p.type}\nVersion: ${p.currentVersion}\n\n${p.description}\n\n${p.content}`
+        ).join("\n\n---\n\n");
+        mimeType = "text/plain";
+        fileExtension = "txt";
+        break;
+      case "pdf":
+        // In a real app, this would generate a PDF
+        // For now, we'll just use text
+        content = selectedPolicies.map(p => 
+          `# ${p.title}\n\nCategory: ${p.type}\nVersion: ${p.currentVersion}\n\n${p.description}\n\n${p.content}`
+        ).join("\n\n---\n\n");
+        mimeType = "text/plain";
+        fileExtension = "txt";
+        break;
+      default:
+        content = JSON.stringify(selectedPolicies, null, 2);
+        mimeType = "application/json";
+        fileExtension = "json";
+    }
+    
+    // Create a blob and download
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `selected_policies.${fileExtension}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    toast({
+      title: "Policies downloaded",
+      description: `${selectedPolicyIds.length} policies have been downloaded as ${format.toUpperCase()}`,
+    });
+  }
+  function handleCategorizeSelected(category: string) {
+    // Update all selected policies with the new category
+    const updatedPolicies = policies.map(policy => {
+      if (selectedPolicyIds.includes(policy.policy_id)) {
+        return {
+          ...policy,
+          type: mapCategoryToType(category),
+          updated_at: new Date().toISOString()
+        };
+      }
+      return policy;
+    });
+    
+    setPolicies(updatedPolicies);
+    
+    toast({
+      title: "Categories updated",
+      description: `${selectedPolicyIds.length} policies have been moved to ${getCategoryName(category)}`,
+    });
+  }
+  function handleTagSelected(tags: string[]) {
+    // Add tags to all selected policies
+    const updatedPolicies = policies.map(policy => {
+      if (selectedPolicyIds.includes(policy.policy_id)) {
+        // Add only tags that don't already exist
+        const newTags = [...policy.tags];
+        tags.forEach(tag => {
+          if (!newTags.includes(tag)) {
+            newTags.push(tag);
+          }
+        });
+        
+        return {
+          ...policy,
+          tags: newTags,
+          updated_at: new Date().toISOString()
+        };
+      }
+      return policy;
+    });
+    
+    setPolicies(updatedPolicies);
+    
+    toast({
+      title: "Tags added",
+      description: `Added ${tags.length} tags to ${selectedPolicyIds.length} policies`,
+    });
+  }
+  function handleEditPolicy(policy: Policy) {
+    setEditingPolicy(policy);
+    setEditTitle(policy.title);
+    setEditDescription(policy.description);
+    setEditType(policy.type);
+    setEditContent(policy.content);
+    setEditTags([...policy.tags]);
+    setIsEditDialogOpen(true);
+  }
+  function handleDownloadVersionInDetail(versionId: string) {
+    if (!selectedPolicy) return;
+    
+    const version = selectedPolicy.versions.find(v => v.version_id === versionId);
+    if (!version) return;
+    
+    // In a real app, this would fetch the specific version content
+    const versionContent = {
+      title: selectedPolicy.title,
+      description: selectedPolicy.description,
+      content: selectedPolicy.content,
+      version: version.version_label,
+      created_at: version.created_at,
+      edited_by: version.edited_by
+    };
+    
+    // Create a blob with the policy content
+    const blob = new Blob([JSON.stringify(versionContent, null, 2)], { type: "application/json" });
+    
+    // Create a download link
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${selectedPolicy.title.replace(/\s+/g, "_")}-${version.version_label}.json`;
+    document.body.appendChild(a);
+    a.click();
+    
+    // Clean up
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    toast({
+      title: "Version downloaded",
+      description: `${selectedPolicy.title} (${version.version_label}) has been downloaded`,
+    });
+  }
 };
 
 export default Index;
