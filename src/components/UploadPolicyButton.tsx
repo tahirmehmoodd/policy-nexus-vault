@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,11 +13,10 @@ import { Policy } from "@/types/policy";
 
 interface UploadPolicyButtonProps {
   onPolicyCreated: (policy: Policy) => void;
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
 }
 
-export function UploadPolicyButton({ onPolicyCreated, isOpen, onOpenChange }: UploadPolicyButtonProps) {
+export function UploadPolicyButton({ onPolicyCreated }: UploadPolicyButtonProps) {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [type, setType] = useState("");
@@ -80,7 +80,7 @@ export function UploadPolicyButton({ onPolicyCreated, isOpen, onOpenChange }: Up
     setContent("");
     setTags([]);
     setNewTag("");
-    onOpenChange(false);
+    setIsDialogOpen(false);
 
     toast({
       title: "Policy Created",
@@ -90,8 +90,8 @@ export function UploadPolicyButton({ onPolicyCreated, isOpen, onOpenChange }: Up
 
   return (
     <>
-      <Button onClick={() => onOpenChange(true)}>Upload Policy</Button>
-      <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <Button onClick={() => setIsDialogOpen(true)}>Upload Policy</Button>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Upload New Policy</DialogTitle>
@@ -173,7 +173,7 @@ export function UploadPolicyButton({ onPolicyCreated, isOpen, onOpenChange }: Up
             )}
           </div>
           <DialogFooter>
-            <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="secondary" onClick={() => setIsDialogOpen(false)}>
               Cancel
             </Button>
             <Button type="submit" onClick={handleCreatePolicy}>Create Policy</Button>
