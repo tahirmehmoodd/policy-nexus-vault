@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { PolicyList } from "@/components/PolicyList";
+import { PolicyDetail } from "@/components/PolicyDetail";
 import { AdvancedFilters, FilterState } from "@/components/AdvancedFilters";
 import { Policy } from "@/types/policy";
 import { UploadPolicyButton } from "@/components/UploadPolicyButton";
@@ -13,6 +14,7 @@ const Index = () => {
   const [policies, setPolicies] = useState<Policy[]>(mockPolicies);
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [filterCategory, setFilterCategory] = useState<string>("all");
+  const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
   const [advancedFilters, setAdvancedFilters] = useState<FilterState>({
     searchQuery: '',
     selectedTags: [],
@@ -115,15 +117,63 @@ const Index = () => {
   };
 
   const handlePolicyClick = (policy: Policy) => {
+    setSelectedPolicy(policy);
+  };
+
+  const handleBackToList = () => {
+    setSelectedPolicy(null);
+  };
+
+  const handleEditPolicy = () => {
     toast({
-      title: "Policy Details",
-      description: `Viewing details for ${policy.title}`,
+      title: "Edit Policy",
+      description: "Edit functionality will be implemented soon.",
+    });
+  };
+
+  const handleVersionDownload = (versionId: string) => {
+    toast({
+      title: "Download Started",
+      description: `Downloading version ${versionId}...`,
+    });
+  };
+
+  const handleCompareVersions = () => {
+    toast({
+      title: "Version Comparison",
+      description: "Version comparison will be implemented soon.",
     });
   };
 
   useEffect(() => {
     // You can add any side effects here
   }, [filterCategory, advancedFilters]);
+
+  // If a policy is selected, show the detail view
+  if (selectedPolicy) {
+    return (
+      <div className="flex h-screen bg-background">
+        <Sidebar 
+          onCategoryChange={setFilterCategory} 
+          onNewPolicyClick={() => setIsUploadDialogOpen(true)}
+          activeCategory={filterCategory}
+          policies={policies}
+        />
+        
+        <div className="flex-1 p-6 overflow-auto">
+          <div className="max-w-7xl mx-auto">
+            <PolicyDetail
+              policy={selectedPolicy}
+              onBack={handleBackToList}
+              onEdit={handleEditPolicy}
+              onVersionDownload={handleVersionDownload}
+              onCompareVersions={handleCompareVersions}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-background">
