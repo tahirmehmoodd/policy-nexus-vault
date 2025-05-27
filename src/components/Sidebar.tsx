@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -18,7 +17,8 @@ import {
   ChevronUpIcon,
   BuildingIcon,
   ComputerIcon,
-  ClipboardIcon
+  ClipboardIcon,
+  Settings
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { FRAMEWORK_CATEGORIES } from "@/types/policy";
@@ -315,7 +315,7 @@ export function Sidebar({ className, onCategoryChange, onNewPolicyClick, activeC
           )}
           onClick={handleSettingsClick}
         >
-          <SettingsIcon className={cn("h-5 w-5", collapsed ? "mx-auto" : "mr-2")} />
+          <Settings className={cn("h-5 w-5", collapsed ? "mx-auto" : "mr-2")} />
           {!collapsed && <span>Settings</span>}
         </Button>
       </div>
