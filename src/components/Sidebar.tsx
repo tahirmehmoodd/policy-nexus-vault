@@ -10,11 +10,6 @@ import {
   SearchIcon,
   PlusIcon,
   ShieldIcon,
-  DatabaseIcon,
-  NetworkIcon,
-  UsersIcon,
-  AlertTriangleIcon,
-  SettingsIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   BookOpenIcon,
@@ -37,7 +32,7 @@ interface SidebarProps {
   policies: Policy[];
 }
 
-export function Sidebar({ className, onCategoryChange, onNewPolicyClick, activeCategory, policies }: SidebarProps) {
+export function Sidebar({ className, onCategoryChange, onNewPolicyClick, activeCategory, policies = [] }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [expandedFrameworks, setExpandedFrameworks] = useState<string[]>(['technical']);
   const { toast } = useToast();
@@ -73,12 +68,14 @@ export function Sidebar({ className, onCategoryChange, onNewPolicyClick, activeC
 
   // Count policies by framework category
   const getPolicyCount = (category: string) => {
+    if (!policies || !Array.isArray(policies)) return 0;
     if (category === 'all') return policies.length;
     return policies.filter(p => p.framework_category === category).length;
   };
 
   // Count policies by domain
   const getDomainPolicyCount = (category: string, domain: string) => {
+    if (!policies || !Array.isArray(policies)) return 0;
     return policies.filter(p => 
       p.framework_category === category && 
       (p.security_domain === domain || p.type === domain)
@@ -274,7 +271,7 @@ export function Sidebar({ className, onCategoryChange, onNewPolicyClick, activeC
                           <div className="flex justify-between items-center w-full">
                             <span>{domain}</span>
                             {domainCount > 0 && (
-                              <Badge variant="outline" size="sm">
+                              <Badge variant="outline">
                                 {domainCount}
                               </Badge>
                             )}
