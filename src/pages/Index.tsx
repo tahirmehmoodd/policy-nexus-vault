@@ -35,22 +35,43 @@ const Index = () => {
   const getFilteredPolicies = () => {
     let filtered = [...policies];
 
+    console.log('Filtering with category:', filterCategory);
+    console.log('Total policies:', policies.length);
+
     // Apply sidebar category filter
     if (filterCategory !== "all") {
-      if (filterCategory.startsWith('physical') || filterCategory.startsWith('technical') || filterCategory.startsWith('organizational')) {
-        const [category, domain] = filterCategory.split('-');
-        if (domain) {
-          filtered = filtered.filter(
-            (policy) =>
-              policy.framework_category === category &&
-              (policy.security_domain.toLowerCase().replace(/\s+/g, '-') === domain || 
-               policy.type.toLowerCase().replace(/\s+/g, '-') === domain)
-          );
-        } else {
-          filtered = filtered.filter((policy) => policy.framework_category === filterCategory);
-        }
+      if (filterCategory.includes('-')) {
+        // Handle domain-specific filtering (e.g., "physical-secure-areas")
+        const [category, ...domainParts] = filterCategory.split('-');
+        const domain = domainParts.join('-');
+        
+        console.log('Category:', category, 'Domain:', domain);
+        
+        filtered = filtered.filter((policy) => {
+          const matchesCategory = policy.framework_category === category;
+          
+          // Check if domain matches security_domain or type (normalize spaces and hyphens)
+          const normalizedSecurityDomain = policy.security_domain.toLowerCase().replace(/\s+/g, '-');
+          const normalizedType = policy.type.toLowerCase().replace(/\s+/g, '-');
+          const normalizedDomain = domain.toLowerCase();
+          
+          const matchesDomain = normalizedSecurityDomain === normalizedDomain || 
+                               normalizedType === normalizedDomain ||
+                               normalizedSecurityDomain.includes(normalizedDomain) ||
+                               normalizedType.includes(normalizedDomain);
+          
+          console.log('Policy:', policy.title, 'Category match:', matchesCategory, 'Domain match:', matchesDomain);
+          console.log('Security domain:', normalizedSecurityDomain, 'Type:', normalizedType, 'Looking for:', normalizedDomain);
+          
+          return matchesCategory && matchesDomain;
+        });
+      } else {
+        // Handle framework category filtering (e.g., "physical", "technical", "organizational")
+        filtered = filtered.filter((policy) => policy.framework_category === filterCategory);
       }
     }
+
+    console.log('After category filtering:', filtered.length);
 
     // Apply advanced filters
     const { 
@@ -102,6 +123,7 @@ const Index = () => {
       filtered = filtered.filter((policy) => policy.framework_category === frameworkFilter);
     }
 
+    console.log('Final filtered count:', filtered.length);
     return filtered;
   };
 
@@ -146,7 +168,7 @@ const Index = () => {
   };
 
   useEffect(() => {
-    // You can add any side effects here
+    console.log('Filter category changed to:', filterCategory);
   }, [filterCategory, advancedFilters]);
 
   // If a policy is selected, show the detail view
@@ -190,7 +212,7 @@ const Index = () => {
             <div>
               <h1 className="text-3xl font-bold">Security Policy Repository</h1>
               <p className="text-muted-foreground mt-1">
-                {filterCategory === "all" ? "All Policies" : filterCategory} 
+                {filterCategory === "all" ? "All Policies" : filterCategory.replace('-', ' - ')} 
                 {filteredPolicies.length !== policies.length && 
                   ` (${filteredPolicies.length} of ${policies.length})`
                 }
