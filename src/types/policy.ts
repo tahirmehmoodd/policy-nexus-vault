@@ -5,6 +5,7 @@ export interface Version {
   description: string;
   created_at: string;
   edited_by: string;
+  changes?: string[];
 }
 
 export interface Policy {
@@ -20,7 +21,52 @@ export interface Policy {
   currentVersion: string;
   tags: string[];
   versions: Version[];
+  framework_category: 'physical' | 'technical' | 'organizational';
+  security_domain: string;
 }
+
+// Security framework categories based on ISO/IEC 27002
+export const FRAMEWORK_CATEGORIES = {
+  physical: {
+    name: 'Physical Controls',
+    description: 'Physical and environmental security controls',
+    domains: ['Physical Security', 'Environmental Security', 'Secure Areas']
+  },
+  technical: {
+    name: 'Technical Controls',
+    description: 'Technical safeguards and system controls',
+    domains: ['Access Control', 'Cryptography', 'System Security', 'Network Security', 'Application Security']
+  },
+  organizational: {
+    name: 'Organizational Controls',
+    description: 'Administrative and procedural controls',
+    domains: ['Information Security Policies', 'Human Resource Security', 'Asset Management', 'Incident Management', 'Business Continuity']
+  }
+};
+
+// Enhanced tag system
+export const SECURITY_TAGS = [
+  'Access Control',
+  'Antivirus',
+  'Supply Chain',
+  'Data Classification',
+  'Incident Response',
+  'Risk Management',
+  'Compliance',
+  'Training',
+  'Audit',
+  'Backup',
+  'Encryption',
+  'Authentication',
+  'Authorization',
+  'Monitoring',
+  'Vulnerability Management',
+  'Third Party',
+  'GDPR',
+  'ISO 27001',
+  'NIST',
+  'SOC 2'
+];
 
 // Adding a function to convert XML to policy format
 export const convertXmlToPolicy = (xmlString: string): Partial<Policy> => {
@@ -50,13 +96,35 @@ export const convertXmlToPolicy = (xmlString: string): Partial<Policy> => {
       type,
       content,
       tags,
-      status: 'draft' as const
+      status: 'draft' as const,
+      framework_category: 'technical' as const,
+      security_domain: 'System Security'
     };
   } catch (error) {
     console.error("Error parsing XML:", error);
     return { 
       title: "Error in XML Parsing",
-      description: "The uploaded XML file could not be parsed correctly."
+      description: "The uploaded XML file could not be parsed correctly.",
+      framework_category: 'technical' as const,
+      security_domain: 'System Security'
     };
   }
+};
+
+// Fuzzy search helper
+export const fuzzySearch = (query: string, text: string): boolean => {
+  if (!query) return true;
+  
+  const queryLower = query.toLowerCase();
+  const textLower = text.toLowerCase();
+  
+  // Simple fuzzy matching - check if all characters in query appear in order
+  let queryIndex = 0;
+  for (let i = 0; i < textLower.length && queryIndex < queryLower.length; i++) {
+    if (textLower[i] === queryLower[queryIndex]) {
+      queryIndex++;
+    }
+  }
+  
+  return queryIndex === queryLower.length;
 };

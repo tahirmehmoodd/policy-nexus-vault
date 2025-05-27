@@ -3,6 +3,8 @@ import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   FolderIcon,
   SearchIcon,
@@ -16,19 +18,28 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   BookOpenIcon,
-  BarChartIcon
+  BarChartIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+  BuildingIcon,
+  ComputerIcon,
+  ClipboardIcon
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { FRAMEWORK_CATEGORIES } from "@/types/policy";
+import { Policy } from "@/types/policy";
 
 interface SidebarProps {
   className?: string;
   onCategoryChange: (category: string) => void;
   onNewPolicyClick: () => void;
   activeCategory: string;
+  policies: Policy[];
 }
 
-export function Sidebar({ className, onCategoryChange, onNewPolicyClick, activeCategory }: SidebarProps) {
+export function Sidebar({ className, onCategoryChange, onNewPolicyClick, activeCategory, policies }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const [expandedFrameworks, setExpandedFrameworks] = useState<string[]>(['technical']);
   const { toast } = useToast();
   
   // Check if we should collapse sidebar on mobile
@@ -52,14 +63,33 @@ export function Sidebar({ className, onCategoryChange, onNewPolicyClick, activeC
     setCollapsed(!collapsed);
   };
 
-  const categories = [
-    { id: "all", name: "All Policies", icon: FolderIcon },
-    { id: "access", name: "Access Control", icon: ShieldIcon },
-    { id: "data", name: "Data Classification", icon: DatabaseIcon },
-    { id: "network", name: "Network Security", icon: NetworkIcon },
-    { id: "user", name: "User Account", icon: UsersIcon },
-    { id: "incident", name: "Incident Handling", icon: AlertTriangleIcon },
-  ];
+  const toggleFramework = (framework: string) => {
+    setExpandedFrameworks(prev => 
+      prev.includes(framework) 
+        ? prev.filter(f => f !== framework)
+        : [...prev, framework]
+    );
+  };
+
+  // Count policies by framework category
+  const getPolicyCount = (category: string) => {
+    if (category === 'all') return policies.length;
+    return policies.filter(p => p.framework_category === category).length;
+  };
+
+  // Count policies by domain
+  const getDomainPolicyCount = (category: string, domain: string) => {
+    return policies.filter(p => 
+      p.framework_category === category && 
+      (p.security_domain === domain || p.type === domain)
+    ).length;
+  };
+
+  const frameworkIcons = {
+    physical: BuildingIcon,
+    technical: ComputerIcon,
+    organizational: ClipboardIcon
+  };
   
   const handleSettingsClick = () => {
     toast({
@@ -78,13 +108,13 @@ export function Sidebar({ className, onCategoryChange, onNewPolicyClick, activeC
   return (
     <div className={cn(
       "flex flex-col h-screen bg-white border-r transition-all duration-300 overflow-hidden",
-      collapsed ? "w-16" : "w-64",
+      collapsed ? "w-16" : "w-80",
       className
     )}>
       <div className="flex items-center p-4 h-16">
         {!collapsed && (
           <h2 className="text-xl font-semibold text-primary flex items-center">
-            <ShieldIcon className="mr-2 h-6 w-6" /> Tahir's SecPolicy
+            <ShieldIcon className="mr-2 h-6 w-6" /> SecPolicy Repository
           </h2>
         )}
         {collapsed && <ShieldIcon className="h-6 w-6 text-primary mx-auto" />}
@@ -146,25 +176,117 @@ export function Sidebar({ className, onCategoryChange, onNewPolicyClick, activeC
       <Separator className="my-2" />
       
       <div className="flex-1 overflow-auto">
-        <div className={cn("px-3 text-sm font-medium text-muted-foreground", collapsed && "text-center")}>
-          {!collapsed && "Categories"}
-        </div>
-        <div className="mt-2 space-y-1 px-2">
-          {categories.map((category) => (
-            <Button
-              key={category.id}
-              variant="ghost"
-              className={cn(
-                "w-full justify-start",
-                collapsed && "justify-center p-2",
-                activeCategory === category.id && "bg-primary/10 text-primary font-medium"
-              )}
-              onClick={() => onCategoryChange(category.id)}
-            >
-              <category.icon className={cn("h-5 w-5", collapsed ? "mx-auto" : "mr-2")} />
-              {!collapsed && <span>{category.name}</span>}
-            </Button>
-          ))}
+        {!collapsed && (
+          <div className="px-3 text-sm font-medium text-muted-foreground mb-2">
+            Security Framework Categories
+          </div>
+        )}
+        
+        <div className="px-2 space-y-1">
+          {/* All Policies */}
+          <Button
+            variant="ghost"
+            className={cn(
+              "w-full justify-start",
+              collapsed && "justify-center p-2",
+              activeCategory === "all" && "bg-primary/10 text-primary font-medium"
+            )}
+            onClick={() => onCategoryChange("all")}
+          >
+            <FolderIcon className={cn("h-5 w-5", collapsed ? "mx-auto" : "mr-2")} />
+            {!collapsed && (
+              <div className="flex justify-between items-center w-full">
+                <span>All Policies</span>
+                <Badge variant="outline" className="ml-2">
+                  {getPolicyCount('all')}
+                </Badge>
+              </div>
+            )}
+          </Button>
+
+          {/* Framework Categories */}
+          {Object.entries(FRAMEWORK_CATEGORIES).map(([key, category]) => {
+            const IconComponent = frameworkIcons[key as keyof typeof frameworkIcons];
+            const isExpanded = expandedFrameworks.includes(key);
+            const policyCount = getPolicyCount(key);
+            
+            if (collapsed) {
+              return (
+                <Button
+                  key={key}
+                  variant="ghost"
+                  className={cn(
+                    "w-full justify-center p-2",
+                    activeCategory === key && "bg-primary/10 text-primary font-medium"
+                  )}
+                  onClick={() => onCategoryChange(key)}
+                >
+                  <IconComponent className="h-5 w-5 mx-auto" />
+                </Button>
+              );
+            }
+
+            return (
+              <div key={key} className="space-y-1">
+                <Collapsible open={isExpanded} onOpenChange={() => toggleFramework(key)}>
+                  <div className="flex">
+                    <Button
+                      variant="ghost"
+                      className={cn(
+                        "flex-1 justify-start",
+                        activeCategory === key && "bg-primary/10 text-primary font-medium"
+                      )}
+                      onClick={() => onCategoryChange(key)}
+                    >
+                      <IconComponent className="h-5 w-5 mr-2" />
+                      <div className="flex justify-between items-center w-full">
+                        <span className="text-sm">{category.name}</span>
+                        <Badge variant="outline" className="ml-2">
+                          {policyCount}
+                        </Badge>
+                      </div>
+                    </Button>
+                    <CollapsibleTrigger asChild>
+                      <Button variant="ghost" size="icon" className="w-8 h-8">
+                        {isExpanded ? 
+                          <ChevronUpIcon className="h-4 w-4" /> : 
+                          <ChevronDownIcon className="h-4 w-4" />
+                        }
+                      </Button>
+                    </CollapsibleTrigger>
+                  </div>
+                  
+                  <CollapsibleContent className="ml-4 space-y-1">
+                    {category.domains.map(domain => {
+                      const domainCount = getDomainPolicyCount(key, domain);
+                      return (
+                        <Button
+                          key={domain}
+                          variant="ghost"
+                          size="sm"
+                          className={cn(
+                            "w-full justify-start text-xs",
+                            activeCategory === `${key}-${domain.toLowerCase().replace(/\s+/g, '-')}` && 
+                            "bg-primary/5 text-primary"
+                          )}
+                          onClick={() => onCategoryChange(`${key}-${domain.toLowerCase().replace(/\s+/g, '-')}`)}
+                        >
+                          <div className="flex justify-between items-center w-full">
+                            <span>{domain}</span>
+                            {domainCount > 0 && (
+                              <Badge variant="outline" size="sm">
+                                {domainCount}
+                              </Badge>
+                            )}
+                          </div>
+                        </Button>
+                      );
+                    })}
+                  </CollapsibleContent>
+                </Collapsible>
+              </div>
+            );
+          })}
         </div>
       </div>
       
@@ -200,9 +322,11 @@ export function Sidebar({ className, onCategoryChange, onNewPolicyClick, activeC
           {!collapsed && <span>Settings</span>}
         </Button>
       </div>
-      <div className="p-2 text-xs text-center text-muted-foreground">
-        {!collapsed && "© 2025 Tahir Mehmood"}
-      </div>
+      {!collapsed && (
+        <div className="p-2 text-xs text-center text-muted-foreground">
+          © 2025 Tahir Mehmood
+        </div>
+      )}
     </div>
   );
 }

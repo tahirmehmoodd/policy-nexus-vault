@@ -1,6 +1,7 @@
+
 import { useState, useEffect } from "react";
 import { mockPolicies } from "@/data/mockPolicies";
-import { Policy } from "@/types/policy";
+import { Policy, fuzzySearch } from "@/types/policy";
 import { Sidebar } from "@/components/Sidebar";
 import { SearchBar } from "@/components/SearchBar";
 import { PolicyList } from "@/components/PolicyList";
@@ -11,6 +12,7 @@ import { AdvancedSearchDialog, SearchCriteria } from "@/components/AdvancedSearc
 import { VersionCompareDialog } from "@/components/VersionCompareDialog";
 import { TagManagement } from "@/components/TagManagement";
 import { BatchOperations } from "@/components/BatchOperations";
+import { AdvancedFilters } from "@/components/AdvancedFilters";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
