@@ -6,13 +6,44 @@ import { PolicyDetail } from "@/components/PolicyDetail";
 import { AdvancedFilters, FilterState } from "@/components/AdvancedFilters";
 import { Policy } from "@/types/policy";
 import { UploadPolicyButton } from "@/components/UploadPolicyButton";
-import { mockPolicies } from "@/data/mockPolicies";
 import { useToast } from "@/components/ui/use-toast";
 import { fuzzySearch } from "@/types/policy";
+import { useAuth } from "@/hooks/useAuth";
+import { usePolicies, DatabasePolicy } from "@/hooks/usePolicies";
+import { AuthModal } from "@/components/AuthModal";
+import { CreatePolicyModal } from "@/components/CreatePolicyModal";
+import { Button } from "@/components/ui/button";
+import { LogOut, User } from "lucide-react";
+
+// Convert DatabasePolicy to Policy type for compatibility
+const convertDatabasePolicy = (dbPolicy: DatabasePolicy): Policy => ({
+  policy_id: dbPolicy.id,
+  title: dbPolicy.title,
+  description: dbPolicy.description || '',
+  type: dbPolicy.type,
+  status: dbPolicy.status as 'active' | 'draft' | 'archived',
+  created_at: dbPolicy.created_at,
+  updated_at: dbPolicy.updated_at,
+  author: dbPolicy.author || 'Unknown',
+  content: dbPolicy.content,
+  currentVersion: dbPolicy.version.toString(),
+  tags: dbPolicy.tags || [],
+  versions: [{
+    version_id: '1',
+    version_label: `v${dbPolicy.version}`,
+    description: 'Current version',
+    created_at: dbPolicy.updated_at,
+    edited_by: dbPolicy.author || 'Unknown',
+  }],
+  framework_category: 'technical' as const,
+  security_domain: dbPolicy.type,
+});
 
 const Index = () => {
-  const [policies, setPolicies] = useState<Policy[]>(mockPolicies);
-  const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
+  const { user, loading: authLoading, signOut } = useAuth();
+  const { policies: dbPolicies, loading, getAllTags, searchPolicies } = usePolicies();
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
   const [advancedFilters, setAdvancedFilters] = useState<FilterState>({
@@ -24,12 +55,22 @@ const Index = () => {
     frameworkFilter: 'all',
     enableFuzzySearch: true
   });
+  const [availableTags, setAvailableTags] = useState<string[]>([]);
   const { toast } = useToast();
 
-  // Get all available tags from policies
-  const availableTags = Array.from(
-    new Set(policies.flatMap(policy => policy.tags))
-  ).sort();
+  // Convert database policies to frontend format
+  const policies = dbPolicies.map(convertDatabasePolicy);
+
+  useEffect(() => {
+    if (user) {
+      loadTags();
+    }
+  }, [user]);
+
+  const loadTags = async () => {
+    const tags = await getAllTags();
+    setAvailableTags(tags);
+  };
 
   // Combined filtering function
   const getFilteredPolicies = () => {
@@ -129,12 +170,10 @@ const Index = () => {
 
   const filteredPolicies = getFilteredPolicies();
 
-  // Handler to add a new policy
-  const handlePolicyCreated = (newPolicy: Policy) => {
-    setPolicies([...policies, newPolicy]);
+  const handlePolicyCreated = () => {
     toast({
       title: "Policy Created",
-      description: `${newPolicy.title} has been created successfully.`,
+      description: "Policy has been created successfully.",
     });
   };
 
@@ -167,9 +206,47 @@ const Index = () => {
     });
   };
 
-  useEffect(() => {
-    console.log('Filter category changed to:', filterCategory);
-  }, [filterCategory, advancedFilters]);
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Signed Out",
+        description: "You have been successfully signed out.",
+      });
+    } catch (error) {
+      toast({
+        title: "Sign Out Error",
+        description: "Failed to sign out",
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-lg">Loading...</div>
+      </div>
+    );
+  }
+
+  // If not authenticated, show sign in prompt
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <div className="text-center space-y-4 p-8">
+          <h1 className="text-3xl font-bold">Security Policy Repository</h1>
+          <p className="text-muted-foreground">
+            Please sign in to access the policy repository
+          </p>
+          <Button onClick={() => setAuthModalOpen(true)}>
+            Sign In / Sign Up
+          </Button>
+        </div>
+        <AuthModal open={authModalOpen} onOpenChange={setAuthModalOpen} />
+      </div>
+    );
+  }
 
   // If a policy is selected, show the detail view
   if (selectedPolicy) {
@@ -177,7 +254,7 @@ const Index = () => {
       <div className="flex h-screen bg-background">
         <Sidebar 
           onCategoryChange={setFilterCategory} 
-          onNewPolicyClick={() => setIsUploadDialogOpen(true)}
+          onNewPolicyClick={() => setCreateModalOpen(true)}
           activeCategory={filterCategory}
           policies={policies}
         />
@@ -201,7 +278,7 @@ const Index = () => {
     <div className="flex h-screen bg-background">
       <Sidebar 
         onCategoryChange={setFilterCategory} 
-        onNewPolicyClick={() => setIsUploadDialogOpen(true)}
+        onNewPolicyClick={() => setCreateModalOpen(true)}
         activeCategory={filterCategory}
         policies={policies}
       />
@@ -218,7 +295,19 @@ const Index = () => {
                 }
               </p>
             </div>
-            <UploadPolicyButton onPolicyCreated={handlePolicyCreated} />
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <User className="h-4 w-4" />
+                {user.email}
+              </div>
+              <Button variant="outline" size="sm" onClick={handleSignOut}>
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign Out
+              </Button>
+              <Button onClick={() => setCreateModalOpen(true)}>
+                Create Policy
+              </Button>
+            </div>
           </div>
 
           <AdvancedFilters
@@ -226,12 +315,20 @@ const Index = () => {
             availableTags={availableTags}
           />
 
-          <PolicyList
-            policies={filteredPolicies}
-            onPolicyClick={handlePolicyClick}
-          />
+          {loading ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="text-lg">Loading policies...</div>
+            </div>
+          ) : (
+            <PolicyList
+              policies={filteredPolicies}
+              onPolicyClick={handlePolicyClick}
+            />
+          )}
         </div>
       </div>
+      
+      <CreatePolicyModal open={createModalOpen} onOpenChange={setCreateModalOpen} />
     </div>
   );
 };
