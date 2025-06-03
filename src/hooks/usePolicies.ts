@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
@@ -80,8 +79,21 @@ export function usePolicies() {
     status?: 'draft' | 'active' | 'archived';
   }) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
+      console.log('Starting policy creation with data:', policyData);
+      
+      // Check if user is authenticated
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) {
+        console.error('Authentication error:', userError);
+        throw new Error('Authentication failed');
+      }
+      
+      if (!user) {
+        console.error('No user found in session');
+        throw new Error('User not authenticated');
+      }
+
+      console.log('User authenticated:', user.id);
 
       // Map type to category for database insertion
       const categoryMapping: Record<string, 'Technical Control' | 'Physical Control' | 'Organizational Control' | 'Administrative Control'> = {
@@ -94,58 +106,115 @@ export function usePolicies() {
       };
 
       const category = categoryMapping[policyData.type] || 'Technical Control';
+      
+      // Prepare the insert data
+      const insertData = {
+        title: policyData.title,
+        description: policyData.description || null,
+        content: policyData.content,
+        type: policyData.type,
+        category: category,
+        tags: policyData.tags || [],
+        status: policyData.status || 'draft',
+        created_by: user.id,
+        updated_by: user.id,
+        author: user.email || 'Unknown',
+      };
+
+      console.log('Insert data prepared:', insertData);
 
       const { data, error } = await supabase
         .from('policies')
-        .insert({
-          title: policyData.title,
-          description: policyData.description,
-          content: policyData.content,
-          type: policyData.type,
-          category: category,
-          tags: policyData.tags || [],
-          status: policyData.status || 'draft',
-          created_by: user.id,
-          updated_by: user.id,
-          author: user.email || 'Unknown',
-        })
+        .insert(insertData)
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database insert error:', error);
+        console.error('Error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
+        throw error;
+      }
+
+      console.log('Policy created successfully:', data);
 
       // Create policy text entry
-      await supabase
-        .from('policy_texts')
-        .insert({
-          policy_id: data.id,
-          content: policyData.content,
-        });
+      try {
+        await supabase
+          .from('policy_texts')
+          .insert({
+            policy_id: data.id,
+            content: policyData.content,
+          });
+        console.log('Policy text created successfully');
+      } catch (textError) {
+        console.error('Error creating policy text:', textError);
+        // Don't throw here as the main policy was created
+      }
 
       // Create initial version
-      await supabase
-        .from('versions')
-        .insert({
-          policy_id: data.id,
-          version_label: 'v1.0',
-          description: 'Initial version',
-          edited_by: user.email || 'Unknown',
-        });
+      try {
+        await supabase
+          .from('versions')
+          .insert({
+            policy_id: data.id,
+            version_label: 'v1.0',
+            description: 'Initial version',
+            edited_by: user.email || 'Unknown',
+          });
+        console.log('Initial version created successfully');
+      } catch (versionError) {
+        console.error('Error creating initial version:', versionError);
+        // Don't throw here as the main policy was created
+      }
 
       // Handle tags
       if (policyData.tags && policyData.tags.length > 0) {
-        await handlePolicyTags(data.id, policyData.tags);
+        try {
+          await handlePolicyTags(data.id, policyData.tags);
+          console.log('Tags handled successfully');
+        } catch (tagError) {
+          console.error('Error handling tags:', tagError);
+          // Don't throw here as the main policy was created
+        }
       }
 
       await fetchPolicies();
+      
+      toast({
+        title: "Success",
+        description: "Policy created successfully",
+      });
+
       return data;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating policy:', error);
+      
+      let errorMessage = 'Failed to create policy';
+      
+      // Handle specific error cases
+      if (error.message?.includes('authentication') || error.message?.includes('authenticated')) {
+        errorMessage = 'You must be logged in to create policies';
+      } else if (error.code === 'PGRST116') {
+        errorMessage = 'Permission denied. Please check your authentication status.';
+      } else if (error.message?.includes('row-level security')) {
+        errorMessage = 'You do not have permission to create policies';
+      } else if (error.details) {
+        errorMessage = `Database error: ${error.details}`;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Error",
-        description: "Failed to create policy",
+        description: errorMessage,
         variant: "destructive",
       });
+      
       throw error;
     }
   };

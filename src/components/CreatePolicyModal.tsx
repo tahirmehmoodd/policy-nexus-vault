@@ -9,8 +9,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { X } from 'lucide-react';
+import { X, AlertCircle } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface CreatePolicyModalProps {
   open: boolean;
@@ -19,6 +20,7 @@ interface CreatePolicyModalProps {
 
 export function CreatePolicyModal({ open, onOpenChange }: CreatePolicyModalProps) {
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -36,34 +38,72 @@ export function CreatePolicyModal({ open, onOpenChange }: CreatePolicyModalProps
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+    
+    // Validate required fields
+    if (!formData.title.trim()) {
+      setError('Title is required');
+      return;
+    }
+    
+    if (!formData.content.trim()) {
+      setError('Content is required');
+      return;
+    }
+    
+    if (!formData.type) {
+      setError('Policy type is required');
+      return;
+    }
+    
     try {
       setLoading(true);
+      console.log('Submitting policy creation form with data:', formData);
       
       const policy = await createPolicy({
-        title: formData.title,
-        description: formData.description,
-        content: formData.content,
+        title: formData.title.trim(),
+        description: formData.description.trim() || undefined,
+        content: formData.content.trim(),
         type: formData.type,
         tags: formData.tags,
         status: formData.status,
       });
 
+      console.log('Policy created successfully:', policy);
+
       // Upload file if provided
       if (file && policy) {
-        const fileUrl = await uploadFile(file, policy.id);
-        // Update policy with file URL
-        // This would require another update call
+        try {
+          console.log('Uploading file:', file.name);
+          const fileUrl = await uploadFile(file, policy.id);
+          console.log('File uploaded successfully:', fileUrl);
+          // Note: You might want to update the policy with the file URL here
+        } catch (fileError) {
+          console.error('File upload failed:', fileError);
+          toast({
+            title: "Warning",
+            description: "Policy created but file upload failed",
+            variant: "destructive",
+          });
+        }
       }
-
-      toast({
-        title: "Policy Created",
-        description: "Your policy has been successfully created.",
-      });
 
       onOpenChange(false);
       resetForm();
-    } catch (error) {
-      console.error('Error creating policy:', error);
+    } catch (error: any) {
+      console.error('Error in form submission:', error);
+      
+      // Extract user-friendly error message
+      let errorMessage = 'Failed to create policy';
+      if (error.message?.includes('authentication') || error.message?.includes('authenticated')) {
+        errorMessage = 'You must be logged in to create policies. Please refresh and try again.';
+      } else if (error.message?.includes('permission') || error.message?.includes('row-level security')) {
+        errorMessage = 'You do not have permission to create policies. Please contact your administrator.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -80,13 +120,14 @@ export function CreatePolicyModal({ open, onOpenChange }: CreatePolicyModalProps
       newTag: '',
     });
     setFile(null);
+    setError(null);
   };
 
   const addTag = () => {
-    if (formData.newTag && !formData.tags.includes(formData.newTag)) {
+    if (formData.newTag.trim() && !formData.tags.includes(formData.newTag.trim())) {
       setFormData({
         ...formData,
-        tags: [...formData.tags, formData.newTag],
+        tags: [...formData.tags, formData.newTag.trim()],
         newTag: '',
       });
     }
@@ -99,12 +140,26 @@ export function CreatePolicyModal({ open, onOpenChange }: CreatePolicyModalProps
     });
   };
 
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      resetForm();
+    }
+    onOpenChange(open);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create New Policy</DialogTitle>
         </DialogHeader>
+        
+        {error && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -114,6 +169,7 @@ export function CreatePolicyModal({ open, onOpenChange }: CreatePolicyModalProps
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               required
+              placeholder="Enter policy title"
             />
           </div>
 
@@ -124,6 +180,7 @@ export function CreatePolicyModal({ open, onOpenChange }: CreatePolicyModalProps
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={3}
+              placeholder="Enter policy description (optional)"
             />
           </div>
 
@@ -166,6 +223,7 @@ export function CreatePolicyModal({ open, onOpenChange }: CreatePolicyModalProps
               onChange={(e) => setFormData({ ...formData, content: e.target.value })}
               rows={6}
               required
+              placeholder="Enter policy content"
             />
           </div>
 
@@ -203,7 +261,7 @@ export function CreatePolicyModal({ open, onOpenChange }: CreatePolicyModalProps
           </div>
 
           <div className="flex gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
               Cancel
             </Button>
             <Button type="submit" disabled={loading || uploading}>
