@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { PolicyList } from "@/components/PolicyList";
@@ -15,6 +14,9 @@ import { CreatePolicyModal } from "@/components/CreatePolicyModal";
 import { EditPolicyModal } from "@/components/EditPolicyModal";
 import { Button } from "@/components/ui/button";
 import { LogOut, User } from "lucide-react";
+import { PolicyTemplatesModal } from "@/components/PolicyTemplatesModal";
+import { XmlImportModal } from "@/components/XmlImportModal";
+import { Download } from "lucide-react";
 
 // Convert DatabasePolicy to Policy type for compatibility
 const convertDatabasePolicy = (dbPolicy: DatabasePolicy): Policy => {
@@ -52,7 +54,7 @@ const convertDatabasePolicy = (dbPolicy: DatabasePolicy): Policy => {
 
 const Index = () => {
   const { user, loading: authLoading, signOut } = useAuth();
-  const { policies: dbPolicies, loading, getAllTags, searchPolicies } = usePolicies();
+  const { policies: dbPolicies, loading, getAllTags, searchPolicies, downloadPolicyAsJson } = usePolicies();
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -70,6 +72,8 @@ const Index = () => {
   });
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const { toast } = useToast();
+  const [templatesModalOpen, setTemplatesModalOpen] = useState(false);
+  const [xmlImportModalOpen, setXmlImportModalOpen] = useState(false);
 
   // Convert database policies to frontend format
   const policies = dbPolicies.map(convertDatabasePolicy);
@@ -239,6 +243,14 @@ const Index = () => {
     }
   };
 
+  const handlePolicyDownload = (policy: Policy) => {
+    // Find the original database policy
+    const dbPolicy = dbPolicies.find(p => p.policy_id === policy.policy_id);
+    if (dbPolicy) {
+      downloadPolicyAsJson(dbPolicy);
+    }
+  };
+
   if (authLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -321,6 +333,14 @@ const Index = () => {
                 <LogOut className="h-4 w-4 mr-2" />
                 Sign Out
               </Button>
+              <Button variant="outline" size="sm" onClick={() => setTemplatesModalOpen(true)}>
+                <FileText className="h-4 w-4 mr-2" />
+                Templates
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setXmlImportModalOpen(true)}>
+                <Upload className="h-4 w-4 mr-2" />
+                Import XML
+              </Button>
               <Button onClick={() => setCreateModalOpen(true)}>
                 Create Policy
               </Button>
@@ -341,6 +361,7 @@ const Index = () => {
               policies={filteredPolicies}
               onPolicyClick={handlePolicyClick}
               onEditPolicy={handleEditPolicy}
+              onDownloadPolicy={handlePolicyDownload}
             />
           )}
         </div>
@@ -351,6 +372,14 @@ const Index = () => {
         open={editModalOpen} 
         onOpenChange={setEditModalOpen}
         policy={editingPolicy}
+      />
+      <PolicyTemplatesModal 
+        open={templatesModalOpen} 
+        onOpenChange={setTemplatesModalOpen} 
+      />
+      <XmlImportModal 
+        open={xmlImportModalOpen} 
+        onOpenChange={setXmlImportModalOpen} 
       />
     </div>
   );

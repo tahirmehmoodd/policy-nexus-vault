@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { usePolicies } from '@/hooks/usePolicies';
 import { useFileUpload } from '@/hooks/useFileUpload';
@@ -77,7 +76,6 @@ export function CreatePolicyModal({ open, onOpenChange }: CreatePolicyModalProps
           console.log('Uploading file:', file.name);
           const fileUrl = await uploadFile(file, policy.id);
           console.log('File uploaded successfully:', fileUrl);
-          // Note: You might want to update the policy with the file URL here
         } catch (fileError) {
           console.error('File upload failed:', fileError);
           toast({
@@ -93,7 +91,6 @@ export function CreatePolicyModal({ open, onOpenChange }: CreatePolicyModalProps
     } catch (error: any) {
       console.error('Error in form submission:', error);
       
-      // Extract user-friendly error message
       let errorMessage = 'Failed to create policy';
       if (error.message?.includes('authentication') || error.message?.includes('authenticated')) {
         errorMessage = 'You must be logged in to create policies. Please refresh and try again.';
@@ -197,6 +194,10 @@ export function CreatePolicyModal({ open, onOpenChange }: CreatePolicyModalProps
                 <SelectItem value="Incident Management">Incident Management</SelectItem>
                 <SelectItem value="Asset Management">Asset Management</SelectItem>
                 <SelectItem value="Business Continuity">Business Continuity</SelectItem>
+                <SelectItem value="Acceptable Use">Acceptable Use</SelectItem>
+                <SelectItem value="Information Security">Information Security</SelectItem>
+                <SelectItem value="Physical Security">Physical Security</SelectItem>
+                <SelectItem value="Risk Management">Risk Management</SelectItem>
               </SelectContent>
             </Select>
           </div>

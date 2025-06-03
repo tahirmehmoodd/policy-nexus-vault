@@ -17,7 +17,7 @@ export interface DatabasePolicy {
   updated_by: string | null;
   created_at: string;
   updated_at: string;
-  author?: string;
+  author: string;
   category: 'Technical Control' | 'Physical Control' | 'Organizational Control' | 'Administrative Control';
 }
 
@@ -82,21 +82,13 @@ export function usePolicies() {
     try {
       console.log('Starting policy creation with data:', policyData);
       
-      // Check if user is authenticated
       const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError) {
-        console.error('Authentication error:', userError);
-        throw new Error('Authentication failed');
-      }
-      
-      if (!user) {
-        console.error('No user found in session');
+      if (userError || !user) {
         throw new Error('User not authenticated');
       }
 
       console.log('User authenticated:', user.id);
 
-      // Map type to category for database insertion
       const categoryMapping: Record<string, 'Technical Control' | 'Physical Control' | 'Organizational Control' | 'Administrative Control'> = {
         'Access Control': 'Technical Control',
         'Data Classification': 'Technical Control',
@@ -104,11 +96,12 @@ export function usePolicies() {
         'Incident Management': 'Organizational Control',
         'Asset Management': 'Physical Control',
         'Business Continuity': 'Organizational Control',
+        'Acceptable Use': 'Organizational Control',
+        'Information Security': 'Organizational Control',
       };
 
       const category = categoryMapping[policyData.type] || 'Technical Control';
       
-      // Prepare the insert data
       const insertData = {
         title: policyData.title,
         description: policyData.description || null,
@@ -130,16 +123,7 @@ export function usePolicies() {
         .select()
         .single();
 
-      if (error) {
-        console.error('Database insert error:', error);
-        console.error('Error details:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code
-        });
-        throw error;
-      }
+      if (error) throw error;
 
       console.log('Policy created successfully:', data);
 
@@ -151,10 +135,8 @@ export function usePolicies() {
             policy_id: data.id,
             content: policyData.content,
           });
-        console.log('Policy text created successfully');
       } catch (textError) {
         console.error('Error creating policy text:', textError);
-        // Don't throw here as the main policy was created
       }
 
       // Create initial version
@@ -167,20 +149,16 @@ export function usePolicies() {
             description: 'Initial version',
             edited_by: user.email || 'Unknown',
           });
-        console.log('Initial version created successfully');
       } catch (versionError) {
         console.error('Error creating initial version:', versionError);
-        // Don't throw here as the main policy was created
       }
 
       // Handle tags
       if (policyData.tags && policyData.tags.length > 0) {
         try {
           await handlePolicyTags(data.id, policyData.tags);
-          console.log('Tags handled successfully');
         } catch (tagError) {
           console.error('Error handling tags:', tagError);
-          // Don't throw here as the main policy was created
         }
       }
 
@@ -197,7 +175,6 @@ export function usePolicies() {
       
       let errorMessage = 'Failed to create policy';
       
-      // Handle specific error cases
       if (error.message?.includes('authentication') || error.message?.includes('authenticated')) {
         errorMessage = 'You must be logged in to create policies';
       } else if (error.code === 'PGRST116') {
@@ -231,7 +208,6 @@ export function usePolicies() {
 
       console.log('Updating policy:', policyId, 'with data:', updates);
 
-      // Get current policy to check for changes and increment version
       const { data: currentPolicy, error: fetchError } = await supabase
         .from('policies')
         .select('*')
@@ -240,7 +216,6 @@ export function usePolicies() {
 
       if (fetchError) throw fetchError;
 
-      // Map type to category if type is being updated
       let updateData = { ...updates };
       if (updates.type) {
         const categoryMapping: Record<string, 'Technical Control' | 'Physical Control' | 'Organizational Control' | 'Administrative Control'> = {
@@ -250,21 +225,22 @@ export function usePolicies() {
           'Incident Management': 'Organizational Control',
           'Asset Management': 'Physical Control',
           'Business Continuity': 'Organizational Control',
+          'Acceptable Use': 'Organizational Control',
+          'Information Security': 'Organizational Control',
         };
         updateData.category = categoryMapping[updates.type] || 'Technical Control';
       }
 
-      // Increment version number properly - convert to number, increment, then back to string for database
-      const currentVersionNum = parseFloat(currentPolicy.version.toString());
+      const currentVersionNum = Number(currentPolicy.version);
       const newVersionNum = currentVersionNum + 0.1;
-      const newVersion = newVersionNum.toFixed(1);
+      const newVersion = Number(newVersionNum.toFixed(1));
 
       const { data, error } = await supabase
         .from('policies')
         .update({
           ...updateData,
           updated_by: user.id,
-          version: parseFloat(newVersion), // Ensure it's a number for the database
+          version: newVersion,
         })
         .eq('id', policyId)
         .select()
@@ -282,7 +258,6 @@ export function usePolicies() {
             policy_id: policyId,
             content: updates.content,
           });
-        console.log('Policy text updated successfully');
       }
 
       // Create new version entry
@@ -290,20 +265,17 @@ export function usePolicies() {
         .from('versions')
         .insert({
           policy_id: policyId,
-          version_label: `v${newVersion}`,
+          version_label: `v${newVersion.toFixed(1)}`,
           description: changeDescription || 'Policy updated',
           edited_by: user.email || 'Unknown',
         });
-      console.log('Version entry created successfully');
 
       // Handle tags if provided
       if (updates.tags) {
         try {
           await handlePolicyTags(policyId, updates.tags);
-          console.log('Tags updated successfully');
         } catch (tagError) {
           console.error('Error updating tags:', tagError);
-          // Don't throw here as the main policy was updated
         }
       }
 
@@ -330,6 +302,11 @@ export function usePolicies() {
       if (error) throw error;
 
       await fetchPolicies();
+      
+      toast({
+        title: "Success",
+        description: "Policy deleted successfully",
+      });
     } catch (error) {
       console.error('Error deleting policy:', error);
       toast({
@@ -343,7 +320,6 @@ export function usePolicies() {
 
   const handlePolicyTags = async (policyId: string, tagNames: string[]) => {
     try {
-      // First, get or create tags
       const tagIds: string[] = [];
       
       for (const tagName of tagNames) {
@@ -367,13 +343,11 @@ export function usePolicies() {
         }
       }
 
-      // Remove existing policy-tag relationships
       await supabase
         .from('policy_tags')
         .delete()
         .eq('policy_id', policyId);
 
-      // Create new relationships
       const policyTagInserts = tagIds.map(tagId => ({
         policy_id: policyId,
         tag_id: tagId,
@@ -406,7 +380,6 @@ export function usePolicies() {
 
       if (error) throw error;
 
-      // Log the search
       await supabase.rpc('log_search', {
         search_query_param: searchQuery,
         search_filters_param: {
@@ -460,6 +433,75 @@ export function usePolicies() {
     }
   };
 
+  const downloadPolicyAsJson = (policy: DatabasePolicy) => {
+    const policyData = {
+      id: policy.id,
+      title: policy.title,
+      description: policy.description,
+      content: policy.content,
+      type: policy.type,
+      category: policy.category,
+      status: policy.status,
+      tags: policy.tags,
+      version: policy.version,
+      author: policy.author,
+      created_at: policy.created_at,
+      updated_at: policy.updated_at,
+    };
+
+    const dataStr = JSON.stringify(policyData, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+    
+    const exportFileDefaultName = `${policy.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_v${policy.version}.json`;
+    
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
+  };
+
+  const convertXmlToPolicy = (xmlContent: string) => {
+    try {
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlContent, "text/xml");
+      
+      const title = xmlDoc.getElementsByTagName("title")[0]?.textContent || "Untitled Policy";
+      const description = xmlDoc.getElementsByTagName("description")[0]?.textContent || "";
+      const type = xmlDoc.getElementsByTagName("type")[0]?.textContent || "Information Security";
+      const content = xmlDoc.getElementsByTagName("content")[0]?.textContent || xmlContent;
+      const tagsElements = xmlDoc.getElementsByTagName("tag");
+      
+      const tags: string[] = [];
+      for (let i = 0; i < tagsElements.length; i++) {
+        const tag = tagsElements[i].textContent;
+        if (tag) tags.push(tag);
+      }
+      
+      return {
+        title,
+        description,
+        type,
+        content,
+        tags,
+      };
+    } catch (error) {
+      console.error("Error parsing XML:", error);
+      toast({
+        title: "XML Parse Error",
+        description: "Could not parse the XML file. Using raw content instead.",
+        variant: "destructive",
+      });
+      
+      return {
+        title: "Imported XML Policy",
+        description: "Policy imported from XML file",
+        type: "Information Security",
+        content: xmlContent,
+        tags: ["XML Import"],
+      };
+    }
+  };
+
   return {
     policies,
     loading,
@@ -469,6 +511,8 @@ export function usePolicies() {
     searchPolicies,
     getPolicyVersions,
     getAllTags,
+    downloadPolicyAsJson,
+    convertXmlToPolicy,
     refreshPolicies: fetchPolicies,
   };
 }
