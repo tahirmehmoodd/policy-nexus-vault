@@ -12,38 +12,51 @@ import { useAuth } from "@/hooks/useAuth";
 import { usePolicies, DatabasePolicy } from "@/hooks/usePolicies";
 import { AuthModal } from "@/components/AuthModal";
 import { CreatePolicyModal } from "@/components/CreatePolicyModal";
+import { EditPolicyModal } from "@/components/EditPolicyModal";
 import { Button } from "@/components/ui/button";
 import { LogOut, User } from "lucide-react";
 
 // Convert DatabasePolicy to Policy type for compatibility
-const convertDatabasePolicy = (dbPolicy: DatabasePolicy): Policy => ({
-  policy_id: dbPolicy.id,
-  title: dbPolicy.title,
-  description: dbPolicy.description || '',
-  type: dbPolicy.type,
-  status: dbPolicy.status as 'active' | 'draft' | 'archived',
-  created_at: dbPolicy.created_at,
-  updated_at: dbPolicy.updated_at,
-  author: dbPolicy.author || 'Unknown',
-  content: dbPolicy.content,
-  currentVersion: dbPolicy.version.toString(),
-  tags: dbPolicy.tags || [],
-  versions: [{
-    version_id: '1',
-    version_label: `v${dbPolicy.version}`,
-    description: 'Current version',
-    created_at: dbPolicy.updated_at,
-    edited_by: dbPolicy.author || 'Unknown',
-  }],
-  framework_category: 'technical' as const,
-  security_domain: dbPolicy.type,
-});
+const convertDatabasePolicy = (dbPolicy: DatabasePolicy): Policy => {
+  // Map database categories to framework categories
+  const categoryMapping: Record<string, 'physical' | 'technical' | 'organizational'> = {
+    'Physical Control': 'physical',
+    'Technical Control': 'technical', 
+    'Organizational Control': 'organizational',
+    'Administrative Control': 'organizational'
+  };
+
+  return {
+    policy_id: dbPolicy.id,
+    title: dbPolicy.title,
+    description: dbPolicy.description || '',
+    type: dbPolicy.type,
+    status: dbPolicy.status as 'active' | 'draft' | 'archived',
+    created_at: dbPolicy.created_at,
+    updated_at: dbPolicy.updated_at,
+    author: dbPolicy.author || 'Unknown',
+    content: dbPolicy.content,
+    currentVersion: dbPolicy.version.toString(),
+    tags: dbPolicy.tags || [],
+    versions: [{
+      version_id: '1',
+      version_label: `v${dbPolicy.version}`,
+      description: 'Current version',
+      created_at: dbPolicy.updated_at,
+      edited_by: dbPolicy.author || 'Unknown',
+    }],
+    framework_category: categoryMapping[dbPolicy.category] || 'technical',
+    security_domain: dbPolicy.type,
+  };
+};
 
 const Index = () => {
   const { user, loading: authLoading, signOut } = useAuth();
   const { policies: dbPolicies, loading, getAllTags, searchPolicies } = usePolicies();
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingPolicy, setEditingPolicy] = useState<Policy | null>(null);
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
   const [advancedFilters, setAdvancedFilters] = useState<FilterState>({
@@ -78,6 +91,7 @@ const Index = () => {
 
     console.log('Filtering with category:', filterCategory);
     console.log('Total policies:', policies.length);
+    console.log('Sample policy framework categories:', policies.slice(0, 3).map(p => ({ title: p.title, framework_category: p.framework_category, type: p.type })));
 
     // Apply sidebar category filter
     if (filterCategory !== "all") {
@@ -108,7 +122,12 @@ const Index = () => {
         });
       } else {
         // Handle framework category filtering (e.g., "physical", "technical", "organizational")
-        filtered = filtered.filter((policy) => policy.framework_category === filterCategory);
+        console.log('Filtering by framework category:', filterCategory);
+        filtered = filtered.filter((policy) => {
+          const matches = policy.framework_category === filterCategory;
+          console.log('Policy:', policy.title, 'Framework category:', policy.framework_category, 'Matches:', matches);
+          return matches;
+        });
       }
     }
 
@@ -185,11 +204,9 @@ const Index = () => {
     setSelectedPolicy(null);
   };
 
-  const handleEditPolicy = () => {
-    toast({
-      title: "Edit Policy",
-      description: "Edit functionality will be implemented soon.",
-    });
+  const handleEditPolicy = (policy: Policy) => {
+    setEditingPolicy(policy);
+    setEditModalOpen(true);
   };
 
   const handleVersionDownload = (versionId: string) => {
@@ -264,7 +281,7 @@ const Index = () => {
             <PolicyDetail
               policy={selectedPolicy}
               onBack={handleBackToList}
-              onEdit={handleEditPolicy}
+              onEdit={() => handleEditPolicy(selectedPolicy)}
               onVersionDownload={handleVersionDownload}
               onCompareVersions={handleCompareVersions}
             />
@@ -323,12 +340,18 @@ const Index = () => {
             <PolicyList
               policies={filteredPolicies}
               onPolicyClick={handlePolicyClick}
+              onEditPolicy={handleEditPolicy}
             />
           )}
         </div>
       </div>
       
       <CreatePolicyModal open={createModalOpen} onOpenChange={setCreateModalOpen} />
+      <EditPolicyModal 
+        open={editModalOpen} 
+        onOpenChange={setEditModalOpen}
+        policy={editingPolicy}
+      />
     </div>
   );
 };

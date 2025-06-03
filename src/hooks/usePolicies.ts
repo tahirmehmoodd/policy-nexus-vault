@@ -221,11 +221,23 @@ export function usePolicies() {
 
   const updatePolicy = async (
     policyId: string,
-    updates: Partial<DatabasePolicy>
+    updates: Partial<DatabasePolicy>,
+    changeDescription?: string
   ) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
+
+      console.log('Updating policy:', policyId, 'with data:', updates);
+
+      // Get current policy to check for changes and increment version
+      const { data: currentPolicy, error: fetchError } = await supabase
+        .from('policies')
+        .select('*')
+        .eq('id', policyId)
+        .single();
+
+      if (fetchError) throw fetchError;
 
       // Map type to category if type is being updated
       let updateData = { ...updates };
@@ -241,18 +253,23 @@ export function usePolicies() {
         updateData.category = categoryMapping[updates.type] || 'Technical Control';
       }
 
+      // Increment version number
+      const newVersion = parseFloat(currentPolicy.version) + 0.1;
+
       const { data, error } = await supabase
         .from('policies')
         .update({
           ...updateData,
           updated_by: user.id,
-          version: (updates.version || 1) + 0.1,
+          version: newVersion,
         })
         .eq('id', policyId)
         .select()
         .single();
 
       if (error) throw error;
+
+      console.log('Policy updated successfully:', data);
 
       // Update policy text if content changed
       if (updates.content) {
@@ -262,17 +279,30 @@ export function usePolicies() {
             policy_id: policyId,
             content: updates.content,
           });
+        console.log('Policy text updated successfully');
       }
 
-      // Create new version
+      // Create new version entry
       await supabase
         .from('versions')
         .insert({
           policy_id: policyId,
-          version_label: `v${data.version}`,
-          description: 'Updated policy',
+          version_label: `v${newVersion.toFixed(1)}`,
+          description: changeDescription || 'Policy updated',
           edited_by: user.email || 'Unknown',
         });
+      console.log('Version entry created successfully');
+
+      // Handle tags if provided
+      if (updates.tags) {
+        try {
+          await handlePolicyTags(policyId, updates.tags);
+          console.log('Tags updated successfully');
+        } catch (tagError) {
+          console.error('Error updating tags:', tagError);
+          // Don't throw here as the main policy was updated
+        }
+      }
 
       await fetchPolicies();
       return data;
