@@ -18,6 +18,7 @@ export interface DatabasePolicy {
   created_at: string;
   updated_at: string;
   author?: string;
+  category: 'Technical Control' | 'Physical Control' | 'Organizational Control' | 'Administrative Control';
 }
 
 export interface DatabasePolicyText {
@@ -82,6 +83,18 @@ export function usePolicies() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
+      // Map type to category for database insertion
+      const categoryMapping: Record<string, 'Technical Control' | 'Physical Control' | 'Organizational Control' | 'Administrative Control'> = {
+        'Access Control': 'Technical Control',
+        'Data Classification': 'Technical Control',
+        'Network Security': 'Technical Control',
+        'Incident Management': 'Organizational Control',
+        'Asset Management': 'Physical Control',
+        'Business Continuity': 'Organizational Control',
+      };
+
+      const category = categoryMapping[policyData.type] || 'Technical Control';
+
       const { data, error } = await supabase
         .from('policies')
         .insert({
@@ -89,6 +102,7 @@ export function usePolicies() {
           description: policyData.description,
           content: policyData.content,
           type: policyData.type,
+          category: category,
           tags: policyData.tags || [],
           status: policyData.status || 'draft',
           created_by: user.id,
@@ -144,10 +158,24 @@ export function usePolicies() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
+      // Map type to category if type is being updated
+      let updateData = { ...updates };
+      if (updates.type) {
+        const categoryMapping: Record<string, 'Technical Control' | 'Physical Control' | 'Organizational Control' | 'Administrative Control'> = {
+          'Access Control': 'Technical Control',
+          'Data Classification': 'Technical Control',
+          'Network Security': 'Technical Control',
+          'Incident Management': 'Organizational Control',
+          'Asset Management': 'Physical Control',
+          'Business Continuity': 'Organizational Control',
+        };
+        updateData.category = categoryMapping[updates.type] || 'Technical Control';
+      }
+
       const { data, error } = await supabase
         .from('policies')
         .update({
-          ...updates,
+          ...updateData,
           updated_by: user.id,
           version: (updates.version || 1) + 0.1,
         })
