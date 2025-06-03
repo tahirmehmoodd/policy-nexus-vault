@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
@@ -253,15 +254,17 @@ export function usePolicies() {
         updateData.category = categoryMapping[updates.type] || 'Technical Control';
       }
 
-      // Increment version number
-      const newVersion = parseFloat(currentPolicy.version) + 0.1;
+      // Increment version number properly - convert to number, increment, then back to string for database
+      const currentVersionNum = parseFloat(currentPolicy.version.toString());
+      const newVersionNum = currentVersionNum + 0.1;
+      const newVersion = newVersionNum.toFixed(1);
 
       const { data, error } = await supabase
         .from('policies')
         .update({
           ...updateData,
           updated_by: user.id,
-          version: newVersion,
+          version: parseFloat(newVersion), // Ensure it's a number for the database
         })
         .eq('id', policyId)
         .select()
@@ -287,7 +290,7 @@ export function usePolicies() {
         .from('versions')
         .insert({
           policy_id: policyId,
-          version_label: `v${newVersion.toFixed(1)}`,
+          version_label: `v${newVersion}`,
           description: changeDescription || 'Policy updated',
           edited_by: user.email || 'Unknown',
         });
