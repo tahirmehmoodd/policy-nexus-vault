@@ -305,13 +305,27 @@ export function usePolicyRepository() {
     try {
       // Type assertion to ensure correct types
       const statusFilter = filterStatus as 'draft' | 'active' | 'archived' | 'under_review' | '';
-      const categoryFilter = filterCategory as 'Technical Control' | 'Physical Control' | 'Organizational Control' | 'Administrative Control' | '';
       
       const results = await searchPoliciesBase(searchQuery, filterTags, filterType, statusFilter);
       
       // Additional client-side filtering for category if needed
-      if (categoryFilter) {
-        return results.filter(policy => policy.category === categoryFilter);
+      if (filterCategory) {
+        // Map the search results to include category from the main policies array
+        const enrichedResults = results.map(result => {
+          const fullPolicy = policies.find(p => p.id === result.policy_id);
+          return {
+            ...result,
+            category: fullPolicy?.category || 'Technical Control'
+          };
+        }).filter(policy => {
+          if (filterCategory === 'Technical Control' || filterCategory === 'Physical Control' || 
+              filterCategory === 'Organizational Control' || filterCategory === 'Administrative Control') {
+            return policy.category === filterCategory;
+          }
+          return true;
+        });
+        
+        return enrichedResults;
       }
       
       return results;
