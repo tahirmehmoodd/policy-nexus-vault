@@ -13,7 +13,7 @@ import { AuthModal } from "@/components/AuthModal";
 import { CreatePolicyModal } from "@/components/CreatePolicyModal";
 import { EditPolicyModal } from "@/components/EditPolicyModal";
 import { Button } from "@/components/ui/button";
-import { LogOut, User } from "lucide-react";
+import { LogOut, User, FileText, Upload } from "lucide-react";
 import { PolicyTemplatesModal } from "@/components/PolicyTemplatesModal";
 import { XmlImportModal } from "@/components/XmlImportModal";
 import { Download } from "lucide-react";
@@ -245,7 +245,7 @@ const Index = () => {
 
   const handlePolicyDownload = (policy: Policy) => {
     // Find the original database policy
-    const dbPolicy = dbPolicies.find(p => p.policy_id === policy.policy_id);
+    const dbPolicy = dbPolicies.find(p => p.id === policy.policy_id);
     if (dbPolicy) {
       downloadPolicyAsJson(dbPolicy);
     }
