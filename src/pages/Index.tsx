@@ -1,388 +1,328 @@
+
 import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { PolicyList } from "@/components/PolicyList";
 import { PolicyDetail } from "@/components/PolicyDetail";
-import { AdvancedFilters, FilterState } from "@/components/AdvancedFilters";
-import { Policy } from "@/types/policy";
-import { UploadPolicyButton } from "@/components/UploadPolicyButton";
-import { useToast } from "@/components/ui/use-toast";
-import { fuzzySearch } from "@/types/policy";
-import { useAuth } from "@/hooks/useAuth";
-import { usePolicies, DatabasePolicy } from "@/hooks/usePolicies";
-import { AuthModal } from "@/components/AuthModal";
 import { CreatePolicyModal } from "@/components/CreatePolicyModal";
 import { EditPolicyModal } from "@/components/EditPolicyModal";
-import { Button } from "@/components/ui/button";
-import { LogOut, User, FileText, Upload } from "lucide-react";
-import { PolicyTemplatesModal } from "@/components/PolicyTemplatesModal";
 import { XmlImportModal } from "@/components/XmlImportModal";
-import { Download } from "lucide-react";
+import { PolicyTemplatesModal } from "@/components/PolicyTemplatesModal";
+import { TagManagement } from "@/components/TagManagement";
+import { EnhancedSearchFilters, SearchFilters } from "@/components/EnhancedSearchFilters";
+import { VersionHistoryModal } from "@/components/VersionHistoryModal";
+import { usePolicyRepository, PolicyData } from "@/hooks/usePolicyRepository";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { AuthModal } from "@/components/AuthModal";
+import { FileText, Upload, Download, Settings, History, BookOpen, Tag } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 
-// Convert DatabasePolicy to Policy type for compatibility
-const convertDatabasePolicy = (dbPolicy: DatabasePolicy): Policy => {
-  // Map database categories to framework categories
-  const categoryMapping: Record<string, 'physical' | 'technical' | 'organizational'> = {
-    'Physical Control': 'physical',
-    'Technical Control': 'technical', 
-    'Organizational Control': 'organizational',
-    'Administrative Control': 'organizational'
-  };
+// Transform database policy to UI policy format
+const transformPolicy = (dbPolicy: PolicyData) => ({
+  policy_id: dbPolicy.id,
+  title: dbPolicy.title,
+  description: dbPolicy.description || "",
+  type: dbPolicy.type,
+  status: dbPolicy.status,
+  created_at: dbPolicy.created_at,
+  updated_at: dbPolicy.updated_at,
+  author: dbPolicy.author,
+  content: dbPolicy.content,
+  currentVersion: dbPolicy.version.toString(),
+  tags: dbPolicy.tags || [],
+  versions: [],
+  framework_category: dbPolicy.category === 'Technical Control' ? 'technical' as const : 
+                     dbPolicy.category === 'Physical Control' ? 'physical' as const : 'organizational' as const,
+  security_domain: dbPolicy.type,
+});
 
-  return {
-    policy_id: dbPolicy.id,
-    title: dbPolicy.title,
-    description: dbPolicy.description || '',
-    type: dbPolicy.type,
-    status: dbPolicy.status as 'active' | 'draft' | 'archived',
-    created_at: dbPolicy.created_at,
-    updated_at: dbPolicy.updated_at,
-    author: dbPolicy.author || 'Unknown',
-    content: dbPolicy.content,
-    currentVersion: dbPolicy.version.toString(),
-    tags: dbPolicy.tags || [],
-    versions: [{
-      version_id: '1',
-      version_label: `v${dbPolicy.version}`,
-      description: 'Current version',
-      created_at: dbPolicy.updated_at,
-      edited_by: dbPolicy.author || 'Unknown',
-    }],
-    framework_category: categoryMapping[dbPolicy.category] || 'technical',
-    security_domain: dbPolicy.type,
-  };
-};
-
-const Index = () => {
-  const { user, loading: authLoading, signOut } = useAuth();
-  const { policies: dbPolicies, loading, getAllTags, searchPolicies, downloadPolicyAsJson } = usePolicies();
-  const [authModalOpen, setAuthModalOpen] = useState(false);
+export default function Index() {
+  const [selectedPolicy, setSelectedPolicy] = useState(null);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [editingPolicy, setEditingPolicy] = useState<Policy | null>(null);
-  const [filterCategory, setFilterCategory] = useState<string>("all");
-  const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
-  const [advancedFilters, setAdvancedFilters] = useState<FilterState>({
-    searchQuery: '',
-    selectedTags: [],
-    tagMatchMode: 'any',
-    statusFilter: 'all',
-    typeFilter: 'all',
-    frameworkFilter: 'all',
-    enableFuzzySearch: true
-  });
+  const [xmlImportOpen, setXmlImportOpen] = useState(false);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
+  const [tagManagementOpen, setTagManagementOpen] = useState(false);
+  const [versionHistoryOpen, setVersionHistoryOpen] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [filteredPolicies, setFilteredPolicies] = useState([]);
   const [availableTags, setAvailableTags] = useState<string[]>([]);
+  
+  const { user, session } = useAuth();
   const { toast } = useToast();
-  const [templatesModalOpen, setTemplatesModalOpen] = useState(false);
-  const [xmlImportModalOpen, setXmlImportModalOpen] = useState(false);
+  const {
+    policies,
+    loading,
+    searchPolicies,
+    downloadPolicyAsJson,
+    downloadPolicyAsPdf,
+    refreshPolicies
+  } = usePolicyRepository();
 
-  // Convert database policies to frontend format
-  const policies = dbPolicies.map(convertDatabasePolicy);
-
+  // Extract unique tags from policies
   useEffect(() => {
-    if (user) {
-      loadTags();
-    }
-  }, [user]);
-
-  const loadTags = async () => {
-    const tags = await getAllTags();
-    setAvailableTags(tags);
-  };
-
-  // Combined filtering function
-  const getFilteredPolicies = () => {
-    let filtered = [...policies];
-
-    console.log('Filtering with category:', filterCategory);
-    console.log('Total policies:', policies.length);
-    console.log('Sample policy framework categories:', policies.slice(0, 3).map(p => ({ title: p.title, framework_category: p.framework_category, type: p.type })));
-
-    // Apply sidebar category filter
-    if (filterCategory !== "all") {
-      if (filterCategory.includes('-')) {
-        // Handle domain-specific filtering (e.g., "physical-secure-areas")
-        const [category, ...domainParts] = filterCategory.split('-');
-        const domain = domainParts.join('-');
-        
-        console.log('Category:', category, 'Domain:', domain);
-        
-        filtered = filtered.filter((policy) => {
-          const matchesCategory = policy.framework_category === category;
-          
-          // Check if domain matches security_domain or type (normalize spaces and hyphens)
-          const normalizedSecurityDomain = policy.security_domain.toLowerCase().replace(/\s+/g, '-');
-          const normalizedType = policy.type.toLowerCase().replace(/\s+/g, '-');
-          const normalizedDomain = domain.toLowerCase();
-          
-          const matchesDomain = normalizedSecurityDomain === normalizedDomain || 
-                               normalizedType === normalizedDomain ||
-                               normalizedSecurityDomain.includes(normalizedDomain) ||
-                               normalizedType.includes(normalizedDomain);
-          
-          console.log('Policy:', policy.title, 'Category match:', matchesCategory, 'Domain match:', matchesDomain);
-          console.log('Security domain:', normalizedSecurityDomain, 'Type:', normalizedType, 'Looking for:', normalizedDomain);
-          
-          return matchesCategory && matchesDomain;
-        });
-      } else {
-        // Handle framework category filtering (e.g., "physical", "technical", "organizational")
-        console.log('Filtering by framework category:', filterCategory);
-        filtered = filtered.filter((policy) => {
-          const matches = policy.framework_category === filterCategory;
-          console.log('Policy:', policy.title, 'Framework category:', policy.framework_category, 'Matches:', matches);
-          return matches;
-        });
+    const tags = new Set<string>();
+    policies.forEach(policy => {
+      if (policy.tags) {
+        policy.tags.forEach(tag => tags.add(tag));
       }
-    }
-
-    console.log('After category filtering:', filtered.length);
-
-    // Apply advanced filters
-    const { 
-      searchQuery, 
-      selectedTags, 
-      tagMatchMode, 
-      statusFilter, 
-      typeFilter, 
-      frameworkFilter,
-      enableFuzzySearch 
-    } = advancedFilters;
-
-    // Search query filter
-    if (searchQuery) {
-      filtered = filtered.filter((policy) => {
-        const searchInFields = `${policy.title} ${policy.description} ${policy.content} ${policy.tags.join(' ')}`.toLowerCase();
-        
-        if (enableFuzzySearch) {
-          return fuzzySearch(searchQuery.toLowerCase(), searchInFields);
-        } else {
-          return searchInFields.includes(searchQuery.toLowerCase());
-        }
-      });
-    }
-
-    // Tag filter
-    if (selectedTags.length > 0) {
-      filtered = filtered.filter((policy) => {
-        if (tagMatchMode === 'any') {
-          return selectedTags.some(tag => policy.tags.includes(tag));
-        } else {
-          return selectedTags.every(tag => policy.tags.includes(tag));
-        }
-      });
-    }
-
-    // Status filter
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter((policy) => policy.status === statusFilter);
-    }
-
-    // Type filter
-    if (typeFilter !== 'all') {
-      filtered = filtered.filter((policy) => policy.type === typeFilter);
-    }
-
-    // Framework filter
-    if (frameworkFilter !== 'all') {
-      filtered = filtered.filter((policy) => policy.framework_category === frameworkFilter);
-    }
-
-    console.log('Final filtered count:', filtered.length);
-    return filtered;
-  };
-
-  const filteredPolicies = getFilteredPolicies();
-
-  const handlePolicyCreated = () => {
-    toast({
-      title: "Policy Created",
-      description: "Policy has been created successfully.",
     });
-  };
+    setAvailableTags(Array.from(tags));
+  }, [policies]);
 
-  const handlePolicyClick = (policy: Policy) => {
-    setSelectedPolicy(policy);
-  };
+  // Set initial filtered policies
+  useEffect(() => {
+    const transformed = policies.map(transformPolicy);
+    setFilteredPolicies(transformed);
+  }, [policies]);
 
-  const handleBackToList = () => {
-    setSelectedPolicy(null);
-  };
+  // Show auth modal if not authenticated
+  useEffect(() => {
+    if (!user && !loading) {
+      setAuthModalOpen(true);
+    }
+  }, [user, loading]);
 
-  const handleEditPolicy = (policy: Policy) => {
-    setEditingPolicy(policy);
-    setEditModalOpen(true);
-  };
-
-  const handleVersionDownload = (versionId: string) => {
-    toast({
-      title: "Download Started",
-      description: `Downloading version ${versionId}...`,
-    });
-  };
-
-  const handleCompareVersions = () => {
-    toast({
-      title: "Version Comparison",
-      description: "Version comparison will be implemented soon.",
-    });
-  };
-
-  const handleSignOut = async () => {
+  const handleSearch = async (query: string, filters: SearchFilters) => {
     try {
-      await signOut();
-      toast({
-        title: "Signed Out",
-        description: "You have been successfully signed out.",
-      });
+      const results = await searchPolicies(
+        query,
+        filters.tags,
+        filters.type,
+        filters.status,
+        filters.category
+      );
+      const transformed = results.map(transformPolicy);
+      setFilteredPolicies(transformed);
     } catch (error) {
+      console.error('Search error:', error);
       toast({
-        title: "Sign Out Error",
-        description: "Failed to sign out",
+        title: "Search Error",
+        description: "Failed to search policies. Please try again.",
         variant: "destructive",
       });
     }
   };
 
-  const handlePolicyDownload = (policy: Policy) => {
+  const handlePolicyClick = (policy) => {
+    setSelectedPolicy(policy);
+  };
+
+  const handleEditPolicy = (policy) => {
+    setSelectedPolicy(policy);
+    setEditModalOpen(true);
+  };
+
+  const handleDownloadPolicy = (policy) => {
     // Find the original database policy
-    const dbPolicy = dbPolicies.find(p => p.id === policy.policy_id);
+    const dbPolicy = policies.find(p => p.id === policy.policy_id);
     if (dbPolicy) {
       downloadPolicyAsJson(dbPolicy);
     }
   };
 
-  if (authLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-lg">Loading...</div>
-      </div>
-    );
-  }
+  const handleDownloadPdf = (policy) => {
+    const dbPolicy = policies.find(p => p.id === policy.policy_id);
+    if (dbPolicy) {
+      downloadPolicyAsPdf(dbPolicy);
+    }
+  };
 
-  // If not authenticated, show sign in prompt
+  const handleViewVersionHistory = (policy) => {
+    setSelectedPolicy(policy);
+    setVersionHistoryOpen(true);
+  };
+
+  const stats = {
+    total: policies.length,
+    active: policies.filter(p => p.status === 'active').length,
+    draft: policies.filter(p => p.status === 'draft').length,
+    templates: policies.filter(p => p.author === 'Policy Repository Templates').length,
+  };
+
+  // Don't show main content if not authenticated
   if (!user) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <div className="text-center space-y-4 p-8">
-          <h1 className="text-3xl font-bold">Security Policy Repository</h1>
-          <p className="text-muted-foreground">
-            Please sign in to access the policy repository
-          </p>
-          <Button onClick={() => setAuthModalOpen(true)}>
-            Sign In / Sign Up
-          </Button>
+      <>
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+          <Card className="w-full max-w-md">
+            <CardHeader className="text-center">
+              <div className="mx-auto mb-4 w-12 h-12 bg-primary rounded-lg flex items-center justify-center">
+                <FileText className="w-6 h-6 text-white" />
+              </div>
+              <CardTitle className="text-2xl">Policy Repository</CardTitle>
+              <p className="text-muted-foreground">
+                Secure Information Security Policy Management System
+              </p>
+            </CardHeader>
+            <CardContent>
+              <Button onClick={() => setAuthModalOpen(true)} className="w-full">
+                Sign In to Continue
+              </Button>
+            </CardContent>
+          </Card>
         </div>
         <AuthModal open={authModalOpen} onOpenChange={setAuthModalOpen} />
-      </div>
-    );
-  }
-
-  // If a policy is selected, show the detail view
-  if (selectedPolicy) {
-    return (
-      <div className="flex h-screen bg-background">
-        <Sidebar 
-          onCategoryChange={setFilterCategory} 
-          onNewPolicyClick={() => setCreateModalOpen(true)}
-          activeCategory={filterCategory}
-          policies={policies}
-        />
-        
-        <div className="flex-1 p-6 overflow-auto">
-          <div className="max-w-7xl mx-auto">
-            <PolicyDetail
-              policy={selectedPolicy}
-              onBack={handleBackToList}
-              onEdit={() => handleEditPolicy(selectedPolicy)}
-              onVersionDownload={handleVersionDownload}
-              onCompareVersions={handleCompareVersions}
-            />
-          </div>
-        </div>
-      </div>
+      </>
     );
   }
 
   return (
     <div className="flex h-screen bg-background">
-      <Sidebar 
-        onCategoryChange={setFilterCategory} 
-        onNewPolicyClick={() => setCreateModalOpen(true)}
-        activeCategory={filterCategory}
-        policies={policies}
-      />
+      <Sidebar />
       
-      <div className="flex-1 p-6 overflow-auto">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-3xl font-bold">Security Policy Repository</h1>
-              <p className="text-muted-foreground mt-1">
-                {filterCategory === "all" ? "All Policies" : filterCategory.replace('-', ' - ')} 
-                {filteredPolicies.length !== policies.length && 
-                  ` (${filteredPolicies.length} of ${policies.length})`
-                }
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <User className="h-4 w-4" />
-                {user.email}
+      <main className="flex-1 overflow-hidden">
+        <div className="h-full flex">
+          {/* Main Policy List */}
+          <div className="flex-1 flex flex-col">
+            <div className="border-b bg-background p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h1 className="text-3xl font-bold">Information Security Policy Repository</h1>
+                  <p className="text-muted-foreground mt-1">
+                    Manage, search, and maintain your organization's security policies
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setTagManagementOpen(true)}>
+                    <Tag className="h-4 w-4 mr-2" />
+                    Manage Tags
+                  </Button>
+                  <Button variant="outline" onClick={() => setTemplatesOpen(true)}>
+                    <BookOpen className="h-4 w-4 mr-2" />
+                    Templates
+                  </Button>
+                  <Button variant="outline" onClick={() => setXmlImportOpen(true)}>
+                    <Upload className="h-4 w-4 mr-2" />
+                    Import XML
+                  </Button>
+                  <Button onClick={() => setCreateModalOpen(true)}>
+                    <FileText className="h-4 w-4 mr-2" />
+                    New Policy
+                  </Button>
+                </div>
               </div>
-              <Button variant="outline" size="sm" onClick={handleSignOut}>
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setTemplatesModalOpen(true)}>
-                <FileText className="h-4 w-4 mr-2" />
-                Templates
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setXmlImportModalOpen(true)}>
-                <Upload className="h-4 w-4 mr-2" />
-                Import XML
-              </Button>
-              <Button onClick={() => setCreateModalOpen(true)}>
-                Create Policy
-              </Button>
+
+              {/* Statistics Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center">
+                      <FileText className="h-8 w-8 text-blue-600" />
+                      <div className="ml-4">
+                        <p className="text-sm font-medium text-muted-foreground">Total Policies</p>
+                        <p className="text-2xl font-bold">{stats.total}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center">
+                      <Badge className="bg-green-100 text-green-800">Active</Badge>
+                      <div className="ml-4">
+                        <p className="text-sm font-medium text-muted-foreground">Active</p>
+                        <p className="text-2xl font-bold">{stats.active}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center">
+                      <Badge className="bg-yellow-100 text-yellow-800">Draft</Badge>
+                      <div className="ml-4">
+                        <p className="text-sm font-medium text-muted-foreground">Drafts</p>
+                        <p className="text-2xl font-bold">{stats.draft}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center">
+                      <BookOpen className="h-8 w-8 text-purple-600" />
+                      <div className="ml-4">
+                        <p className="text-sm font-medium text-muted-foreground">Templates</p>
+                        <p className="text-2xl font-bold">{stats.templates}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-auto p-6">
+              <EnhancedSearchFilters
+                onSearch={handleSearch}
+                availableTags={availableTags}
+                loading={loading}
+              />
+              
+              <PolicyList
+                policies={filteredPolicies}
+                onPolicyClick={handlePolicyClick}
+                onEditPolicy={handleEditPolicy}
+                onDownloadPolicy={handleDownloadPolicy}
+              />
             </div>
           </div>
 
-          <AdvancedFilters
-            onFiltersChange={setAdvancedFilters}
-            availableTags={availableTags}
-          />
-
-          {loading ? (
-            <div className="flex items-center justify-center h-64">
-              <div className="text-lg">Loading policies...</div>
+          {/* Policy Detail Sidebar */}
+          {selectedPolicy && (
+            <div className="w-1/3 border-l bg-muted/30">
+              <PolicyDetail
+                policy={selectedPolicy}
+                onEdit={() => setEditModalOpen(true)}
+                onDownload={handleDownloadPolicy}
+                onDownloadPdf={handleDownloadPdf}
+                onViewVersionHistory={handleViewVersionHistory}
+                onClose={() => setSelectedPolicy(null)}
+              />
             </div>
-          ) : (
-            <PolicyList
-              policies={filteredPolicies}
-              onPolicyClick={handlePolicyClick}
-              onEditPolicy={handleEditPolicy}
-              onDownloadPolicy={handlePolicyDownload}
-            />
           )}
         </div>
-      </div>
-      
-      <CreatePolicyModal open={createModalOpen} onOpenChange={setCreateModalOpen} />
-      <EditPolicyModal 
-        open={editModalOpen} 
+      </main>
+
+      {/* Modals */}
+      <CreatePolicyModal
+        open={createModalOpen}
+        onOpenChange={setCreateModalOpen}
+      />
+
+      <EditPolicyModal
+        open={editModalOpen}
         onOpenChange={setEditModalOpen}
-        policy={editingPolicy}
+        policy={selectedPolicy}
       />
-      <PolicyTemplatesModal 
-        open={templatesModalOpen} 
-        onOpenChange={setTemplatesModalOpen} 
+
+      <XmlImportModal
+        open={xmlImportOpen}
+        onOpenChange={setXmlImportOpen}
       />
-      <XmlImportModal 
-        open={xmlImportModalOpen} 
-        onOpenChange={setXmlImportModalOpen} 
+
+      <PolicyTemplatesModal
+        open={templatesOpen}
+        onOpenChange={setTemplatesOpen}
+      />
+
+      <TagManagement
+        isOpen={tagManagementOpen}
+        onOpenChange={setTagManagementOpen}
+        policies={filteredPolicies}
+        onUpdatePolicy={(policy) => {
+          // Handle policy update from tag management
+          refreshPolicies();
+        }}
+      />
+
+      <VersionHistoryModal
+        open={versionHistoryOpen}
+        onOpenChange={setVersionHistoryOpen}
+        policy={selectedPolicy ? policies.find(p => p.id === selectedPolicy.policy_id) : null}
       />
     </div>
   );
-};
-
-export default Index;
+}

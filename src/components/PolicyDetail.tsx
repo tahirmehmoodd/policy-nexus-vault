@@ -1,264 +1,251 @@
 
-import { useState } from "react";
-import { Policy } from "@/types/policy";
+import React from "react";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { format } from "date-fns";
 import { 
-  Download, 
-  Clock, 
-  Tag, 
-  History, 
-  Edit, 
-  Share, 
-  FileText,
-  ArrowLeft,
-  DiffIcon,
-  Printer,
-  Eye
+  FileTextIcon, 
+  CalendarIcon, 
+  UserIcon, 
+  TagIcon, 
+  DownloadIcon,
+  EditIcon,
+  HistoryIcon,
+  X,
+  ShieldIcon,
+  FileIcon
 } from "lucide-react";
 
 interface PolicyDetailProps {
-  policy: Policy;
-  onBack: () => void;
+  policy: any;
   onEdit: () => void;
-  onVersionDownload: (versionId: string) => void;
-  onCompareVersions: () => void;
+  onDownload: (policy: any) => void;
+  onDownloadPdf?: (policy: any) => void;
+  onViewVersionHistory?: (policy: any) => void;
+  onClose: () => void;
 }
 
 export function PolicyDetail({ 
   policy, 
-  onBack, 
   onEdit, 
-  onVersionDownload,
-  onCompareVersions
+  onDownload, 
+  onDownloadPdf,
+  onViewVersionHistory,
+  onClose 
 }: PolicyDetailProps) {
-  const [activeTab, setActiveTab] = useState("content");
-  
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return format(date, "MMMM d, yyyy");
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
-  
-  const getCategoryName = (type: string) => {
-    switch(type) {
-      case 'access': return 'Access Control';
-      case 'data': return 'Data Classification';
-      case 'network': return 'Network Security';
-      case 'user': return 'User Account';
-      case 'incident': return 'Incident Handling';
-      default: return type;
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'active': return 'bg-green-100 text-green-800';
+      case 'draft': return 'bg-yellow-100 text-yellow-800';
+      case 'archived': return 'bg-gray-100 text-gray-800';
+      case 'under_review': return 'bg-blue-100 text-blue-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
-  
-  const handlePrint = () => {
-    window.print();
-  };
-  
-  const handleDownloadCurrentVersion = () => {
-    if (policy.versions.length > 0) {
-      onVersionDownload(policy.versions[0].version_id);
+
+  const getFrameworkColor = (category: string) => {
+    switch (category) {
+      case 'physical': return 'bg-blue-100 text-blue-800';
+      case 'technical': return 'bg-purple-100 text-purple-800';
+      case 'organizational': return 'bg-orange-100 text-orange-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
-  
+
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case 'physical': return ShieldIcon;
+      case 'technical': return FileIcon;
+      case 'organizational': return UserIcon;
+      default: return FileTextIcon;
+    }
+  };
+
+  const CategoryIcon = getCategoryIcon(policy.framework_category);
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row gap-4 items-start justify-between">
-        <div>
-          <div className="flex items-center mb-4">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={onBack}
-              className="mr-2 -ml-2"
-            >
-              <ArrowLeft className="mr-1 h-4 w-4" />
-              Back
-            </Button>
+    <div className="h-full flex flex-col">
+      {/* Header */}
+      <div className="border-b p-4">
+        <div className="flex items-start justify-between">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-2">
+              <FileTextIcon className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+              <h2 className="font-semibold text-lg truncate">{policy.title}</h2>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Badge className={getStatusColor(policy.status)}>
+                {policy.status.replace('_', ' ')}
+              </Badge>
+              <Badge className={getFrameworkColor(policy.framework_category)}>
+                <CategoryIcon className="h-3 w-3 mr-1" />
+                {policy.framework_category}
+              </Badge>
+              <span className="text-xs text-muted-foreground">
+                v{policy.currentVersion}
+              </span>
+            </div>
           </div>
-          <h1 className="text-2xl font-semibold">{policy.title}</h1>
-          <div className="flex flex-wrap items-center gap-2 mt-2 text-muted-foreground">
-            <Badge variant="outline">{getCategoryName(policy.type)}</Badge>
-            <span className="flex items-center gap-1 text-sm">
-              <Clock className="h-4 w-4" />
-              Updated {formatDate(policy.updated_at)}
-            </span>
-            <span className="text-sm">Version {policy.currentVersion}</span>
-          </div>
-        </div>
-        
-        <div className="flex flex-wrap gap-2 md:justify-end">
-          <Button variant="outline" size="sm" className="gap-2" onClick={onEdit}>
-            <Edit className="h-4 w-4" />
-            Edit
-          </Button>
-          <Button variant="outline" size="sm" className="gap-2" onClick={handlePrint}>
-            <Printer className="h-4 w-4" />
-            Print
-          </Button>
-          <Button size="sm" className="gap-2" onClick={handleDownloadCurrentVersion}>
-            <Download className="h-4 w-4" />
-            Download
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            <X className="h-4 w-4" />
           </Button>
         </div>
       </div>
-      
-      <div className="flex flex-wrap gap-2">
-        {policy.tags.map((tag) => (
-          <Badge key={tag} variant="secondary">
-            {tag}
-          </Badge>
-        ))}
-      </div>
-      
-      <Tabs defaultValue="content" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="content" className="flex items-center gap-2">
-            <FileText className="h-4 w-4" /> 
-            Content
-          </TabsTrigger>
-          <TabsTrigger value="info" className="flex items-center gap-2">
-            <Eye className="h-4 w-4" /> 
-            Overview
-          </TabsTrigger>
-          <TabsTrigger value="versions" className="flex items-center gap-2">
-            <History className="h-4 w-4" /> 
-            Version History
-          </TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="content" className="mt-6">
+
+      {/* Content */}
+      <ScrollArea className="flex-1">
+        <div className="p-4 space-y-6">
+          {/* Policy Metadata */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle>Policy Content</CardTitle>
-              <CardDescription>
-                Version {policy.currentVersion} • Last updated {formatDate(policy.updated_at)}
-              </CardDescription>
+              <CardTitle className="text-sm font-medium">Policy Information</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="policy-content whitespace-pre-wrap">
-                {policy.content}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="info" className="mt-6">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle>Policy Information</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground mb-1">Title</h3>
-                    <p>{policy.title}</p>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground mb-1">Description</h3>
-                    <p>{policy.description}</p>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground mb-1">Type</h3>
-                    <p>{getCategoryName(policy.type)}</p>
-                  </div>
+            <CardContent className="space-y-3">
+              <div className="grid grid-cols-1 gap-3 text-sm">
+                <div className="flex items-center gap-2">
+                  <UserIcon className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium">Author:</span>
+                  <span className="text-muted-foreground">{policy.author}</span>
                 </div>
-                
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground mb-1">Created</h3>
-                    <p>{formatDate(policy.created_at)}</p>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground mb-1">Last Updated</h3>
-                    <p>{formatDate(policy.updated_at)}</p>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground mb-1">Current Version</h3>
-                    <p>v{policy.currentVersion}</p>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground mb-1">Tags</h3>
-                    <div className="flex flex-wrap gap-2 mt-1">
-                      {policy.tags.map((tag) => (
-                        <Badge key={tag} variant="outline">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <FileTextIcon className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium">Type:</span>
+                  <span className="text-muted-foreground">{policy.type}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <ShieldIcon className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium">Security Domain:</span>
+                  <span className="text-muted-foreground">{policy.security_domain}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium">Created:</span>
+                  <span className="text-muted-foreground">{formatDate(policy.created_at)}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium">Last Updated:</span>
+                  <span className="text-muted-foreground">{formatDate(policy.updated_at)}</span>
                 </div>
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
-        
-        <TabsContent value="versions" className="mt-6">
-          <Card>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle>Version History</CardTitle>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="gap-2"
-                  onClick={onCompareVersions}
-                >
-                  <DiffIcon className="h-4 w-4" />
-                  Compare Versions
-                </Button>
-              </div>
-              <CardDescription>
-                {policy.versions.length} versions
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-[400px]">
-                <div className="space-y-4">
-                  {policy.versions.map((version) => (
-                    <div 
-                      key={version.version_id} 
-                      className="p-4 border rounded-md hover:bg-muted/50 transition-colors"
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-3">
-                          <Badge variant={version.version_id === policy.versions[0].version_id ? "default" : "outline"}>
-                            {version.version_label}
-                          </Badge>
-                          <span className="text-sm text-muted-foreground">
-                            {formatDate(version.created_at)}
-                          </span>
-                        </div>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => onVersionDownload(version.version_id)}
-                        >
-                          <Download className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      <div className="text-sm text-muted-foreground mb-1">
-                        Edited by: {version.edited_by}
-                      </div>
-                      <p className="text-sm">{version.description}</p>
-                    </div>
+
+          {/* Description */}
+          {policy.description && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium">Description</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {policy.description}
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Tags */}
+          {policy.tags && policy.tags.length > 0 && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <TagIcon className="h-4 w-4" />
+                  Tags ({policy.tags.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {policy.tags.map((tag: string) => (
+                    <Badge key={tag} variant="outline" className="text-xs">
+                      {tag}
+                    </Badge>
                   ))}
                 </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Policy Content */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium">Policy Content</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-64 rounded border p-3">
+                <pre className="text-xs whitespace-pre-wrap leading-relaxed">
+                  {policy.content}
+                </pre>
               </ScrollArea>
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
+
+          {/* Version Information */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <HistoryIcon className="h-4 w-4" />
+                Version Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center justify-between text-sm">
+                <span>Current Version:</span>
+                <Badge variant="outline">v{policy.currentVersion}</Badge>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span>Total Versions:</span>
+                <span className="text-muted-foreground">{policy.versions?.length || 1}</span>
+              </div>
+              {onViewVersionHistory && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onViewVersionHistory(policy)}
+                  className="w-full"
+                >
+                  <HistoryIcon className="h-4 w-4 mr-2" />
+                  View Version History
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </ScrollArea>
+
+      {/* Actions */}
+      <div className="border-t p-4">
+        <div className="space-y-2">
+          <div className="grid grid-cols-2 gap-2">
+            <Button variant="outline" size="sm" onClick={() => onDownload(policy)}>
+              <DownloadIcon className="h-4 w-4 mr-2" />
+              JSON
+            </Button>
+            {onDownloadPdf && (
+              <Button variant="outline" size="sm" onClick={() => onDownloadPdf(policy)}>
+                <DownloadIcon className="h-4 w-4 mr-2" />
+                PDF
+              </Button>
+            )}
+          </div>
+          <Button onClick={onEdit} className="w-full">
+            <EditIcon className="h-4 w-4 mr-2" />
+            Edit Policy
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
