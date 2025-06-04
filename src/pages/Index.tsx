@@ -35,8 +35,8 @@ const transformPolicy = (dbPolicy: PolicyData) => ({
   currentVersion: dbPolicy.version.toString(),
   tags: dbPolicy.tags || [],
   versions: [],
-  framework_category: dbPolicy.category === 'Technical Control' ? 'technical' as const : 
-                     dbPolicy.category === 'Physical Control' ? 'physical' as const : 'organizational' as const,
+  framework_category: dbPolicy.category === 'Technical Control' ? 'technical' : 
+                     dbPolicy.category === 'Physical Control' ? 'physical' : 'organizational',
   security_domain: dbPolicy.type,
 });
 
@@ -55,7 +55,7 @@ const transformSearchResult = (searchResult: any) => ({
   tags: searchResult.tags || [],
   versions: [],
   framework_category: (searchResult.category === 'Technical Control' ? 'technical' : 
-                      searchResult.category === 'Physical Control' ? 'physical' : 'organizational') as const,
+                      searchResult.category === 'Physical Control' ? 'physical' : 'organizational'),
   security_domain: searchResult.type,
 });
 
@@ -246,9 +246,6 @@ export default function Index() {
       <Sidebar 
         onCategoryChange={handleCategoryChange}
         onNewPolicyClick={() => setCreateModalOpen(true)}
-        onDocumentationClick={() => setDocumentationOpen(true)}
-        onSettingsClick={() => setSettingsOpen(true)}
-        onReportsClick={() => setReportsOpen(true)}
         activeCategory={activeCategory}
         policies={filteredPolicies}
       />
