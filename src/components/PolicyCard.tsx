@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,14 +20,20 @@ interface PolicyCardProps {
   policy: Policy;
   onClick: () => void;
   onEdit?: () => void;
+  onDownload?: (policy: Policy) => void;
   viewMode?: 'grid' | 'list';
 }
 
-export function PolicyCard({ policy, onClick, onEdit, viewMode = 'grid' }: PolicyCardProps) {
+export function PolicyCard({ policy, onClick, onEdit, onDownload, viewMode = 'grid' }: PolicyCardProps) {
   const { toast } = useToast();
 
   const handleDownloadJSON = (e: React.MouseEvent) => {
     e.stopPropagation();
+    
+    if (onDownload) {
+      onDownload(policy);
+      return;
+    }
     
     const dataStr = JSON.stringify(policy, null, 2);
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
