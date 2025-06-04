@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { AuthModal } from "@/components/AuthModal";
 import { FileText, Upload, Download, Settings, History, BookOpen, Tag } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { motion } from "framer-motion";
 
 // Transform database policy to UI policy format
 const transformPolicy = (dbPolicy: PolicyData) => ({
@@ -49,8 +50,9 @@ export default function Index() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [filteredPolicies, setFilteredPolicies] = useState([]);
   const [availableTags, setAvailableTags] = useState<string[]>([]);
+  const [activeCategory, setActiveCategory] = useState('all');
   
-  const { user, session } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
   const {
     policies,
@@ -106,6 +108,42 @@ export default function Index() {
     }
   };
 
+  const handleCategoryChange = async (category: string) => {
+    setActiveCategory(category);
+    
+    if (category === 'all') {
+      const transformed = policies.map(transformPolicy);
+      setFilteredPolicies(transformed);
+      return;
+    }
+
+    // Handle framework categories
+    if (category === 'technical' || category === 'physical' || category === 'organizational') {
+      const categoryMapping = {
+        'technical': 'Technical Control',
+        'physical': 'Physical Control', 
+        'organizational': 'Organizational Control'
+      };
+      
+      const results = await searchPolicies('', [], '', '', categoryMapping[category]);
+      const transformed = results.map(transformPolicy);
+      setFilteredPolicies(transformed);
+      return;
+    }
+
+    // Handle specific domain filtering
+    if (category.includes('-')) {
+      const [frameworkCategory, domain] = category.split('-');
+      const domainName = domain.split('-').map(word => 
+        word.charAt(0).toUpperCase() + word.slice(1)
+      ).join(' ');
+      
+      const results = await searchPolicies('', [], domainName, '', '');
+      const transformed = results.map(transformPolicy);
+      setFilteredPolicies(transformed);
+    }
+  };
+
   const handlePolicyClick = (policy) => {
     setSelectedPolicy(policy);
   };
@@ -146,24 +184,35 @@ export default function Index() {
   if (!user) {
     return (
       <>
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-          <Card className="w-full max-w-md">
-            <CardHeader className="text-center">
-              <div className="mx-auto mb-4 w-12 h-12 bg-primary rounded-lg flex items-center justify-center">
-                <FileText className="w-6 h-6 text-white" />
-              </div>
-              <CardTitle className="text-2xl">Policy Repository</CardTitle>
-              <p className="text-muted-foreground">
-                Secure Information Security Policy Management System
-              </p>
-            </CardHeader>
-            <CardContent>
-              <Button onClick={() => setAuthModalOpen(true)} className="w-full">
-                Sign In to Continue
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+        <motion.div 
+          className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5 }}
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.2, duration: 0.3 }}
+          >
+            <Card className="w-full max-w-md">
+              <CardHeader className="text-center">
+                <div className="mx-auto mb-4 w-12 h-12 bg-primary rounded-lg flex items-center justify-center">
+                  <FileText className="w-6 h-6 text-white" />
+                </div>
+                <CardTitle className="text-2xl">Policy Repository</CardTitle>
+                <p className="text-muted-foreground">
+                  Secure Information Security Policy Management System
+                </p>
+              </CardHeader>
+              <CardContent>
+                <Button onClick={() => setAuthModalOpen(true)} className="w-full">
+                  Sign In to Continue
+                </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </motion.div>
         <AuthModal open={authModalOpen} onOpenChange={setAuthModalOpen} />
       </>
     );
@@ -171,7 +220,12 @@ export default function Index() {
 
   return (
     <div className="flex h-screen bg-background">
-      <Sidebar />
+      <Sidebar 
+        onCategoryChange={handleCategoryChange}
+        onNewPolicyClick={() => setCreateModalOpen(true)}
+        activeCategory={activeCategory}
+        policies={filteredPolicies}
+      />
       
       <main className="flex-1 overflow-hidden">
         <div className="h-full flex">
@@ -179,13 +233,22 @@ export default function Index() {
           <div className="flex-1 flex flex-col">
             <div className="border-b bg-background p-6">
               <div className="flex items-center justify-between mb-6">
-                <div>
+                <motion.div
+                  initial={{ x: -20, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ duration: 0.5 }}
+                >
                   <h1 className="text-3xl font-bold">Information Security Policy Repository</h1>
                   <p className="text-muted-foreground mt-1">
                     Manage, search, and maintain your organization's security policies
                   </p>
-                </div>
-                <div className="flex gap-2">
+                </motion.div>
+                <motion.div 
+                  className="flex gap-2"
+                  initial={{ x: 20, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ duration: 0.5, delay: 0.2 }}
+                >
                   <Button variant="outline" onClick={() => setTagManagementOpen(true)}>
                     <Tag className="h-4 w-4 mr-2" />
                     Manage Tags
@@ -202,12 +265,17 @@ export default function Index() {
                     <FileText className="h-4 w-4 mr-2" />
                     New Policy
                   </Button>
-                </div>
+                </motion.div>
               </div>
 
               {/* Statistics Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                <Card>
+              <motion.div 
+                className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6"
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.3 }}
+              >
+                <Card className="hover-scale">
                   <CardContent className="p-4">
                     <div className="flex items-center">
                       <FileText className="h-8 w-8 text-blue-600" />
@@ -218,7 +286,7 @@ export default function Index() {
                     </div>
                   </CardContent>
                 </Card>
-                <Card>
+                <Card className="hover-scale">
                   <CardContent className="p-4">
                     <div className="flex items-center">
                       <Badge className="bg-green-100 text-green-800">Active</Badge>
@@ -229,7 +297,7 @@ export default function Index() {
                     </div>
                   </CardContent>
                 </Card>
-                <Card>
+                <Card className="hover-scale">
                   <CardContent className="p-4">
                     <div className="flex items-center">
                       <Badge className="bg-yellow-100 text-yellow-800">Draft</Badge>
@@ -240,7 +308,7 @@ export default function Index() {
                     </div>
                   </CardContent>
                 </Card>
-                <Card>
+                <Card className="hover-scale">
                   <CardContent className="p-4">
                     <div className="flex items-center">
                       <BookOpen className="h-8 w-8 text-purple-600" />
@@ -251,28 +319,46 @@ export default function Index() {
                     </div>
                   </CardContent>
                 </Card>
-              </div>
+              </motion.div>
             </div>
 
             <div className="flex-1 overflow-auto p-6">
-              <EnhancedSearchFilters
-                onSearch={handleSearch}
-                availableTags={availableTags}
-                loading={loading}
-              />
+              <motion.div
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.4 }}
+              >
+                <EnhancedSearchFilters
+                  onSearch={handleSearch}
+                  availableTags={availableTags}
+                  loading={loading}
+                />
+              </motion.div>
               
-              <PolicyList
-                policies={filteredPolicies}
-                onPolicyClick={handlePolicyClick}
-                onEditPolicy={handleEditPolicy}
-                onDownloadPolicy={handleDownloadPolicy}
-              />
+              <motion.div
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.5 }}
+              >
+                <PolicyList
+                  policies={filteredPolicies}
+                  onPolicyClick={handlePolicyClick}
+                  onEditPolicy={handleEditPolicy}
+                  onDownloadPolicy={handleDownloadPolicy}
+                />
+              </motion.div>
             </div>
           </div>
 
           {/* Policy Detail Sidebar */}
           {selectedPolicy && (
-            <div className="w-1/3 border-l bg-muted/30">
+            <motion.div 
+              className="w-1/3 border-l bg-muted/30"
+              initial={{ x: 300, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: 300, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+            >
               <PolicyDetail
                 policy={selectedPolicy}
                 onEdit={() => setEditModalOpen(true)}
@@ -281,7 +367,7 @@ export default function Index() {
                 onViewVersionHistory={handleViewVersionHistory}
                 onClose={() => setSelectedPolicy(null)}
               />
-            </div>
+            </motion.div>
           )}
         </div>
       </main>
@@ -313,7 +399,6 @@ export default function Index() {
         onOpenChange={setTagManagementOpen}
         policies={filteredPolicies}
         onUpdatePolicy={(policy) => {
-          // Handle policy update from tag management
           refreshPolicies();
         }}
       />
