@@ -42,6 +42,128 @@ const transformDatabasePolicy = (dbPolicy: DatabasePolicy) => ({
   security_domain: dbPolicy.type,
 });
 
+// Helper function to filter policies by category
+const filterPoliciesByCategory = (policies: DatabasePolicy[], activeCategory: string) => {
+  const transformed = policies.map(transformDatabasePolicy);
+  
+  console.log('Filtering policies:', {
+    activeCategory,
+    totalPolicies: policies.length,
+    samplePolicy: policies[0] ? {
+      id: policies[0].id,
+      category: policies[0].category,
+      type: policies[0].type,
+      title: policies[0].title
+    } : null
+  });
+  
+  if (activeCategory === 'all') {
+    console.log('Showing all policies:', transformed.length);
+    return transformed;
+  }
+  
+  let filtered = [];
+  
+  // Handle framework categories (technical, physical, organizational)
+  if (['technical', 'physical', 'organizational'].includes(activeCategory)) {
+    // Map category keys to database category values
+    const categoryMapping = {
+      'technical': 'Technical Control',
+      'physical': 'Physical Control', 
+      'organizational': ['Organizational Control', 'Administrative Control']
+    };
+    
+    const dbCategories = categoryMapping[activeCategory as keyof typeof categoryMapping];
+    
+    if (Array.isArray(dbCategories)) {
+      filtered = transformed.filter(policy => {
+        const originalPolicy = policies.find(p => p.id === policy.policy_id);
+        return originalPolicy && dbCategories.includes(originalPolicy.category);
+      });
+    } else {
+      filtered = transformed.filter(policy => {
+        const originalPolicy = policies.find(p => p.id === policy.policy_id);
+        return originalPolicy && originalPolicy.category === dbCategories;
+      });
+    }
+    
+    console.log(`Filtered by ${activeCategory}:`, {
+      expectedCategories: dbCategories,
+      filteredCount: filtered.length,
+      filteredPolicies: filtered.map(p => ({
+        title: p.title,
+        category: policies.find(orig => orig.id === p.policy_id)?.category
+      }))
+    });
+  }
+  
+  // Handle domain-specific filtering (e.g., 'technical-access-control')
+  else if (activeCategory.includes('-')) {
+    const [frameworkCategory, ...domainParts] = activeCategory.split('-');
+    const domain = domainParts.join(' ').replace(/-/g, ' ');
+    
+    // Convert domain to proper case for matching
+    const domainName = domain.split(' ').map(word => 
+      word.charAt(0).toUpperCase() + word.slice(1)
+    ).join(' ');
+    
+    console.log('Domain filtering:', {
+      frameworkCategory,
+      domain,
+      domainName,
+      activeCategory
+    });
+    
+    // First filter by framework category, then by domain/type
+    const categoryMapping = {
+      'technical': 'Technical Control',
+      'physical': 'Physical Control',
+      'organizational': ['Organizational Control', 'Administrative Control']
+    };
+    
+    const dbCategories = categoryMapping[frameworkCategory as keyof typeof categoryMapping];
+    
+    filtered = transformed.filter(policy => {
+      const originalPolicy = policies.find(p => p.id === policy.policy_id);
+      if (!originalPolicy) return false;
+      
+      // Check if policy matches the framework category
+      let matchesCategory = false;
+      if (Array.isArray(dbCategories)) {
+        matchesCategory = dbCategories.includes(originalPolicy.category);
+      } else {
+        matchesCategory = originalPolicy.category === dbCategories;
+      }
+      
+      // Check if policy matches the domain/type
+      const matchesDomain = originalPolicy.type === domainName ||
+                           originalPolicy.type.toLowerCase().includes(domain.toLowerCase());
+      
+      console.log('Policy domain match check:', {
+        policyTitle: originalPolicy.title,
+        policyCategory: originalPolicy.category,
+        policyType: originalPolicy.type,
+        matchesCategory,
+        matchesDomain,
+        domainName,
+        domain
+      });
+      
+      return matchesCategory && matchesDomain;
+    });
+    
+    console.log(`Filtered by domain ${activeCategory}:`, {
+      filteredCount: filtered.length,
+      filteredPolicies: filtered.map(p => ({
+        title: p.title,
+        type: policies.find(orig => orig.id === p.policy_id)?.type
+      }))
+    });
+  }
+  
+  return filtered;
+};
+
 export default function Index() {
   const [selectedPolicy, setSelectedPolicy] = useState(null);
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -85,33 +207,19 @@ export default function Index() {
 
   // Set initial filtered policies and handle category filtering
   useEffect(() => {
-    const transformed = policies.map(transformDatabasePolicy);
+    console.log('Category filter effect triggered:', {
+      activeCategory,
+      policiesCount: policies.length,
+      policies: policies.map(p => ({ id: p.id, title: p.title, category: p.category, type: p.type }))
+    });
     
-    if (activeCategory === 'all') {
-      setFilteredPolicies(transformed);
-    } else {
-      // Filter policies based on active category
-      let filtered = [];
-      
-      if (activeCategory === 'technical' || activeCategory === 'physical' || activeCategory === 'organizational') {
-        // Filter by framework category
-        filtered = transformed.filter(policy => policy.framework_category === activeCategory);
-      } else if (activeCategory.includes('-')) {
-        // Handle specific domain filtering (e.g., 'technical-access-control')
-        const [frameworkCategory, ...domainParts] = activeCategory.split('-');
-        const domain = domainParts.join(' ').replace(/-/g, ' ');
-        const domainName = domain.split(' ').map(word => 
-          word.charAt(0).toUpperCase() + word.slice(1)
-        ).join(' ');
-        
-        filtered = transformed.filter(policy => 
-          policy.framework_category === frameworkCategory && 
-          (policy.security_domain === domainName || policy.type === domainName)
-        );
-      }
-      
-      setFilteredPolicies(filtered);
-    }
+    const filtered = filterPoliciesByCategory(policies, activeCategory);
+    setFilteredPolicies(filtered);
+    
+    console.log('Updated filtered policies:', {
+      activeCategory,
+      filteredCount: filtered.length
+    });
   }, [policies, activeCategory]);
 
   // Show auth modal if not authenticated
@@ -170,6 +278,7 @@ export default function Index() {
   };
 
   const handleCategoryChange = (category: string) => {
+    console.log('Category changed to:', category);
     setActiveCategory(category);
     // The filtering will be handled by the useEffect above
   };
@@ -191,7 +300,7 @@ export default function Index() {
     }
   };
 
-    const handleDownloadPdf = (policy) => {
+  const handleDownloadPdf = (policy) => {
     const dbPolicy = policies.find(p => p.id === policy.policy_id);
     if (dbPolicy) {
       downloadPolicyAsPdf(dbPolicy);
