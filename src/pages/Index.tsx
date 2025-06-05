@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { PolicyList } from "@/components/PolicyList";
@@ -10,7 +9,7 @@ import { PolicyTemplatesModal } from "@/components/PolicyTemplatesModal";
 import { TagManagement } from "@/components/TagManagement";
 import { EnhancedSearchFilters, SearchFilters } from "@/components/EnhancedSearchFilters";
 import { VersionHistoryModal } from "@/components/VersionHistoryModal";
-import { usePolicyRepository, PolicyData } from "@/hooks/usePolicyRepository";
+import { usePolicies, DatabasePolicy } from "@/hooks/usePolicies";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,7 +21,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { motion } from "framer-motion";
 
 // Transform database policy to UI policy format
-const transformPolicy = (dbPolicy: PolicyData) => ({
+const transformDatabasePolicy = (dbPolicy: DatabasePolicy) => ({
   policy_id: dbPolicy.id,
   title: dbPolicy.title,
   description: dbPolicy.description || "",
@@ -31,32 +30,15 @@ const transformPolicy = (dbPolicy: PolicyData) => ({
   created_at: dbPolicy.created_at,
   updated_at: dbPolicy.updated_at,
   author: dbPolicy.author,
-  content: dbPolicy.content,
+  content: dbPolicy.content || "Content not available yet.",
   currentVersion: dbPolicy.version.toString(),
   tags: dbPolicy.tags || [],
   versions: [],
   framework_category: dbPolicy.category === 'Technical Control' ? 'technical' : 
-                     dbPolicy.category === 'Physical Control' ? 'physical' : 'organizational',
+                     dbPolicy.category === 'Physical Control' ? 'physical' : 
+                     dbPolicy.category === 'Administrative Control' ? 'organizational' :
+                     'organizational', // fallback for Organizational Control
   security_domain: dbPolicy.type,
-});
-
-// Transform search result to UI policy format
-const transformSearchResult = (searchResult: any) => ({
-  policy_id: searchResult.policy_id,
-  title: searchResult.title,
-  description: searchResult.description || "",
-  type: searchResult.type,
-  status: searchResult.status,
-  created_at: searchResult.created_at,
-  updated_at: searchResult.updated_at,
-  author: searchResult.author,
-  content: searchResult.content,
-  currentVersion: "1.0", // Default version for search results
-  tags: searchResult.tags || [],
-  versions: [],
-  framework_category: (searchResult.category === 'Technical Control' ? 'technical' : 
-                      searchResult.category === 'Physical Control' ? 'physical' : 'organizational'),
-  security_domain: searchResult.type,
 });
 
 export default function Index() {
@@ -84,7 +66,7 @@ export default function Index() {
     downloadPolicyAsJson,
     downloadPolicyAsPdf,
     refreshPolicies
-  } = usePolicyRepository();
+  } = usePolicies();
 
   // Extract unique tags from policies
   useEffect(() => {
@@ -97,11 +79,36 @@ export default function Index() {
     setAvailableTags(Array.from(tags));
   }, [policies]);
 
-  // Set initial filtered policies
+  // Set initial filtered policies and handle category filtering
   useEffect(() => {
-    const transformed = policies.map(transformPolicy);
-    setFilteredPolicies(transformed);
-  }, [policies]);
+    const transformed = policies.map(transformDatabasePolicy);
+    
+    if (activeCategory === 'all') {
+      setFilteredPolicies(transformed);
+    } else {
+      // Filter policies based on active category
+      let filtered = [];
+      
+      if (activeCategory === 'technical' || activeCategory === 'physical' || activeCategory === 'organizational') {
+        // Filter by framework category
+        filtered = transformed.filter(policy => policy.framework_category === activeCategory);
+      } else if (activeCategory.includes('-')) {
+        // Handle specific domain filtering (e.g., 'technical-access-control')
+        const [frameworkCategory, ...domainParts] = activeCategory.split('-');
+        const domain = domainParts.join(' ').replace(/-/g, ' ');
+        const domainName = domain.split(' ').map(word => 
+          word.charAt(0).toUpperCase() + word.slice(1)
+        ).join(' ');
+        
+        filtered = transformed.filter(policy => 
+          policy.framework_category === frameworkCategory && 
+          (policy.security_domain === domainName || policy.type === domainName)
+        );
+      }
+      
+      setFilteredPolicies(filtered);
+    }
+  }, [policies, activeCategory]);
 
   // Show auth modal if not authenticated
   useEffect(() => {
@@ -119,7 +126,26 @@ export default function Index() {
         filters.status,
         filters.category
       );
-      const transformed = results.map(transformSearchResult);
+      
+      // Transform search results to UI format
+      const transformed = results.map(result => ({
+        policy_id: result.policy_id,
+        title: result.title,
+        description: result.description || "",
+        type: result.type,
+        status: result.status,
+        created_at: result.created_at,
+        updated_at: result.updated_at,
+        author: result.author,
+        content: result.content || "Content not available yet.",
+        currentVersion: "1.0",
+        tags: result.tags || [],
+        versions: [],
+        framework_category: (result.category === 'Technical Control' ? 'technical' : 
+                      result.category === 'Physical Control' ? 'physical' : 'organizational'), // Default for search results
+        security_domain: result.type,
+      }));
+      
       setFilteredPolicies(transformed);
     } catch (error) {
       console.error('Search error:', error);
@@ -131,40 +157,9 @@ export default function Index() {
     }
   };
 
-  const handleCategoryChange = async (category: string) => {
+  const handleCategoryChange = (category: string) => {
     setActiveCategory(category);
-    
-    if (category === 'all') {
-      const transformed = policies.map(transformPolicy);
-      setFilteredPolicies(transformed);
-      return;
-    }
-
-    // Handle framework categories
-    if (category === 'technical' || category === 'physical' || category === 'organizational') {
-      const categoryMapping = {
-        'technical': 'Technical Control',
-        'physical': 'Physical Control', 
-        'organizational': 'Organizational Control'
-      };
-      
-      const results = await searchPolicies('', [], '', '', categoryMapping[category]);
-      const transformed = results.map(transformSearchResult);
-      setFilteredPolicies(transformed);
-      return;
-    }
-
-    // Handle specific domain filtering
-    if (category.includes('-')) {
-      const [frameworkCategory, domain] = category.split('-');
-      const domainName = domain.split('-').map(word => 
-        word.charAt(0).toUpperCase() + word.slice(1)
-      ).join(' ');
-      
-      const results = await searchPolicies('', [], domainName, '', '');
-      const transformed = results.map(transformSearchResult);
-      setFilteredPolicies(transformed);
-    }
+    // The filtering will be handled by the useEffect above
   };
 
   const handlePolicyClick = (policy) => {
@@ -184,7 +179,7 @@ export default function Index() {
     }
   };
 
-  const handleDownloadPdf = (policy) => {
+    const handleDownloadPdf = (policy) => {
     const dbPolicy = policies.find(p => p.id === policy.policy_id);
     if (dbPolicy) {
       downloadPolicyAsPdf(dbPolicy);
