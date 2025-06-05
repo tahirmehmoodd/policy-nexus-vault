@@ -10,6 +10,7 @@ import { TagManagement } from "@/components/TagManagement";
 import { EnhancedSearchFilters, SearchFilters } from "@/components/EnhancedSearchFilters";
 import { VersionHistoryModal } from "@/components/VersionHistoryModal";
 import { usePolicies, DatabasePolicy } from "@/hooks/usePolicies";
+import { usePolicyRepository } from "@/hooks/usePolicyRepository";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -62,11 +63,14 @@ export default function Index() {
   const {
     policies,
     loading,
-    searchPolicies,
-    downloadPolicyAsJson,
-    downloadPolicyAsPdf,
     refreshPolicies
   } = usePolicies();
+  
+  const {
+    searchPolicies,
+    downloadPolicyAsJson,
+    downloadPolicyAsPdf
+  } = usePolicyRepository();
 
   // Extract unique tags from policies
   useEffect(() => {
@@ -119,32 +123,40 @@ export default function Index() {
 
   const handleSearch = async (query: string, filters: SearchFilters) => {
     try {
+      // Fixed: Remove the extra category parameter from searchPolicies call
       const results = await searchPolicies(
         query,
         filters.tags,
         filters.type,
-        filters.status,
-        filters.category
+        filters.status
       );
       
-      // Transform search results to UI format
-      const transformed = results.map(result => ({
-        policy_id: result.policy_id,
-        title: result.title,
-        description: result.description || "",
-        type: result.type,
-        status: result.status,
-        created_at: result.created_at,
-        updated_at: result.updated_at,
-        author: result.author,
-        content: result.content || "Content not available yet.",
-        currentVersion: "1.0",
-        tags: result.tags || [],
-        versions: [],
-        framework_category: (result.category === 'Technical Control' ? 'technical' : 
-                      result.category === 'Physical Control' ? 'physical' : 'organizational'), // Default for search results
-        security_domain: result.type,
-      }));
+      // Transform search results to UI format and add category from main policies
+      const transformed = results.map(result => {
+        // Find the corresponding policy in the main policies array to get category
+        const fullPolicy = policies.find(p => p.id === result.policy_id);
+        return {
+          policy_id: result.policy_id,
+          title: result.title,
+          description: result.description || "",
+          type: result.type,
+          status: result.status,
+          created_at: result.created_at,
+          updated_at: result.updated_at,
+          author: result.author,
+          content: result.content || "Content not available yet.",
+          currentVersion: "1.0",
+          tags: result.tags || [],
+          versions: [],
+          framework_category: fullPolicy ? (
+            fullPolicy.category === 'Technical Control' ? 'technical' : 
+            fullPolicy.category === 'Physical Control' ? 'physical' : 
+            fullPolicy.category === 'Administrative Control' ? 'organizational' :
+            'organizational'
+          ) : 'organizational',
+          security_domain: result.type,
+        };
+      });
       
       setFilteredPolicies(transformed);
     } catch (error) {
