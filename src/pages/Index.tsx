@@ -268,6 +268,7 @@ export default function Index() {
 
   const handleEditPolicy = (policy) => {
     setSelectedPolicy(policy);
+    setCreateModalOpen(false); // Ensure create modal is closed first
     setEditModalOpen(true);
   };
 
@@ -342,10 +343,12 @@ export default function Index() {
         onCategoryChange={handleCategoryChange}
         onNewPolicyClick={() => {
           setEditModalOpen(false); // Ensure edit modal is closed
+          setSelectedPolicy(null); // Clear selected policy
           setCreateModalOpen(true);
         }}
         activeCategory={activeCategory}
         policies={filteredPolicies}
+        allPolicies={policies} // Pass all policies for correct counts
       />
       
       <main className="flex-1 overflow-hidden">
@@ -384,6 +387,7 @@ export default function Index() {
                   </Button>
                   <Button onClick={() => {
                     setEditModalOpen(false); // Ensure edit modal is closed
+                    setSelectedPolicy(null); // Clear selected policy
                     setCreateModalOpen(true);
                   }}>
                     <FileText className="h-4 w-4 mr-2" />
@@ -501,13 +505,19 @@ export default function Index() {
 
       {/* Modals */}
       <CreatePolicyModal
-        open={createModalOpen}
-        onOpenChange={setCreateModalOpen}
+        open={createModalOpen && !editModalOpen} // Only open if edit modal is not open
+        onOpenChange={(open) => {
+          setCreateModalOpen(open);
+          if (!open) setSelectedPolicy(null);
+        }}
       />
 
       <EditPolicyModal
-        open={editModalOpen}
-        onOpenChange={setEditModalOpen}
+        open={editModalOpen && !createModalOpen} // Only open if create modal is not open
+        onOpenChange={(open) => {
+          setEditModalOpen(open);
+          if (!open) setSelectedPolicy(null);
+        }}
         policy={selectedPolicy}
       />
 
