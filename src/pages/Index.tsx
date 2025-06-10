@@ -17,7 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AuthModal } from "@/components/AuthModal";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { FileText, Upload, Download, Settings, History, BookOpen, Tag, FileIcon, BarChart3 } from "lucide-react";
+import { FileText, Upload, Settings, BookOpen, Tag, FileIcon, BarChart3 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { motion } from "framer-motion";
 
@@ -198,7 +198,15 @@ export default function Index() {
 
   const handleSearch = async (query: string, filters: SearchFilters) => {
     try {
-      setIsSearchActive(query.trim() !== '' || filters.tags.length > 0 || filters.type !== '' || filters.status !== '');
+      const hasActiveSearch = query.trim() !== '' || filters.tags.length > 0 || filters.type !== '' || filters.status !== '';
+      setIsSearchActive(hasActiveSearch);
+      
+      if (!hasActiveSearch) {
+        // If search is cleared, revert to category filtering
+        const filtered = filterPoliciesByCategory(policies, activeCategory);
+        setFilteredPolicies(filtered);
+        return;
+      }
       
       const results = await searchPolicies(
         query,
@@ -247,7 +255,11 @@ export default function Index() {
   const handleCategoryChange = (category: string) => {
     console.log('Category changed to:', category);
     setActiveCategory(category);
-    setIsSearchActive(false); // Reset search when category changes
+    setIsSearchActive(false); // Reset search when category changes - this is the key fix
+    
+    // Immediately apply category filtering to prevent showing all policies
+    const filtered = filterPoliciesByCategory(policies, category);
+    setFilteredPolicies(filtered);
   };
 
   const handlePolicyClick = (policy) => {
@@ -256,7 +268,6 @@ export default function Index() {
 
   const handleEditPolicy = (policy) => {
     setSelectedPolicy(policy);
-    setCreateModalOpen(false); // Ensure create modal is closed
     setEditModalOpen(true);
   };
 
