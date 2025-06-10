@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,6 +22,39 @@ export function Sidebar({ onCategoryChange, onNewPolicyClick, activeCategory, po
   const activePolicies = allPolicies.filter(p => p.status === 'active').length;
   const draftPolicies = allPolicies.filter(p => p.status === 'draft').length;
 
+  // Simplified category counting - directly match categories without complex lookups
+  const getTechnicalCount = () => {
+    return allPolicies.filter(p => 
+      p.category === 'Technical Control' || 
+      p.framework_category === 'technical'
+    ).length;
+  };
+
+  const getPhysicalCount = () => {
+    return allPolicies.filter(p => 
+      p.category === 'Physical Control' || 
+      p.framework_category === 'physical'
+    ).length;
+  };
+
+  const getOrganizationalCount = () => {
+    return allPolicies.filter(p => 
+      p.category === 'Organizational Control' || 
+      p.category === 'Administrative Control' ||
+      p.framework_category === 'organizational'
+    ).length;
+  };
+
+  // Simplified type counting - directly match types
+  const getTypeCount = (typeName: string) => {
+    return allPolicies.filter(p => {
+      // Handle both exact matches and partial matches for flexibility
+      return p.type === typeName || 
+             p.type?.toLowerCase().includes(typeName.toLowerCase()) ||
+             typeName.toLowerCase().includes(p.type?.toLowerCase() || '');
+    }).length;
+  };
+
   const categories = [
     {
       id: 'all',
@@ -33,30 +67,21 @@ export function Sidebar({ onCategoryChange, onNewPolicyClick, activeCategory, po
       id: 'technical',
       name: 'Technical Controls',
       icon: Shield,
-      count: allPolicies.filter(p => {
-        const originalPolicy = allPolicies.find(orig => orig.policy_id === p.policy_id || orig.id === p.policy_id);
-        return originalPolicy && originalPolicy.category === 'Technical Control';
-      }).length,
+      count: getTechnicalCount(),
       description: 'Technology-based security controls'
     },
     {
       id: 'physical',
       name: 'Physical Controls', 
       icon: Building,
-      count: allPolicies.filter(p => {
-        const originalPolicy = allPolicies.find(orig => orig.policy_id === p.policy_id || orig.id === p.policy_id);
-        return originalPolicy && originalPolicy.category === 'Physical Control';
-      }).length,
+      count: getPhysicalCount(),
       description: 'Physical security measures'
     },
     {
       id: 'organizational',
       name: 'Organizational Controls',
       icon: Users,
-      count: allPolicies.filter(p => {
-        const originalPolicy = allPolicies.find(orig => orig.policy_id === p.policy_id || orig.id === p.policy_id);
-        return originalPolicy && (originalPolicy.category === 'Organizational Control' || originalPolicy.category === 'Administrative Control');
-      }).length,
+      count: getOrganizationalCount(),
       description: 'Administrative and procedural controls'
     }
   ];
@@ -66,55 +91,37 @@ export function Sidebar({ onCategoryChange, onNewPolicyClick, activeCategory, po
       id: 'Access Control',
       name: 'Access Control',
       icon: Key,
-      count: allPolicies.filter(p => {
-        const originalPolicy = allPolicies.find(orig => orig.policy_id === p.policy_id || orig.id === p.policy_id);
-        return originalPolicy && originalPolicy.type === 'Access Control';
-      }).length
+      count: getTypeCount('Access Control')
     },
     {
       id: 'Data Classification',
       name: 'Data Classification',
       icon: Database,
-      count: allPolicies.filter(p => {
-        const originalPolicy = allPolicies.find(orig => orig.policy_id === p.policy_id || orig.id === p.policy_id);
-        return originalPolicy && originalPolicy.type === 'Data Classification';
-      }).length
+      count: getTypeCount('Data Classification')
     },
     {
       id: 'Network Security',
       name: 'Network Security',
       icon: Network,
-      count: allPolicies.filter(p => {
-        const originalPolicy = allPolicies.find(orig => orig.policy_id === p.policy_id || orig.id === p.policy_id);
-        return originalPolicy && originalPolicy.type === 'Network Security';
-      }).length
+      count: getTypeCount('Network Security')
     },
     {
       id: 'Physical Security',
       name: 'Physical Security', 
       icon: Shield,
-      count: allPolicies.filter(p => {
-        const originalPolicy = allPolicies.find(orig => orig.policy_id === p.policy_id || orig.id === p.policy_id);
-        return originalPolicy && originalPolicy.type === 'Physical Security';
-      }).length
+      count: getTypeCount('Physical Security')
     },
     {
       id: 'Cryptography',
       name: 'Cryptography',
       icon: Shield,
-      count: allPolicies.filter(p => {
-        const originalPolicy = allPolicies.find(orig => orig.policy_id === p.policy_id || orig.id === p.policy_id);
-        return originalPolicy && originalPolicy.type === 'Cryptography';
-      }).length
+      count: getTypeCount('Cryptography')
     },
     {
       id: 'Incident Management',
       name: 'Incident Management',
       icon: AlertTriangle,
-      count: allPolicies.filter(p => {
-        const originalPolicy = allPolicies.find(orig => orig.policy_id === p.policy_id || orig.id === p.policy_id);
-        return originalPolicy && originalPolicy.type === 'Incident Management';
-      }).length
+      count: getTypeCount('Incident Management')
     }
   ];
 
