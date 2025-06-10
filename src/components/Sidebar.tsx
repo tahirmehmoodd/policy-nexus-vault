@@ -1,9 +1,8 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Shield, Building, Users, Database, Network, Key, AlertTriangle, FileShield, Plus } from "lucide-react";
+import { FileText, Shield, Building, Users, Database, Network, Key, AlertTriangle, Plus } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface SidebarProps {
@@ -93,7 +92,7 @@ export function Sidebar({ onCategoryChange, onNewPolicyClick, activeCategory, po
     {
       id: 'Physical Security',
       name: 'Physical Security', 
-      icon: FileShield,
+      icon: Shield,
       count: allPolicies.filter(p => {
         const originalPolicy = allPolicies.find(orig => orig.policy_id === p.policy_id || orig.id === p.policy_id);
         return originalPolicy && originalPolicy.type === 'Physical Security';
