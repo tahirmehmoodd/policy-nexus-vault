@@ -49,12 +49,8 @@ const filterPoliciesByCategory = (policies: DatabasePolicy[], activeCategory: st
   console.log('Filtering policies:', {
     activeCategory,
     totalPolicies: policies.length,
-    samplePolicy: policies[0] ? {
-      id: policies[0].id,
-      category: policies[0].category,
-      type: policies[0].type,
-      title: policies[0].title
-    } : null
+    availableCategories: [...new Set(policies.map(p => p.category))],
+    availableTypes: [...new Set(policies.map(p => p.type))]
   });
   
   if (activeCategory === 'all') {
@@ -66,7 +62,6 @@ const filterPoliciesByCategory = (policies: DatabasePolicy[], activeCategory: st
   
   // Handle framework categories (technical, physical, organizational)
   if (['technical', 'physical', 'organizational'].includes(activeCategory)) {
-    // Map category keys to database category values
     const categoryMapping = {
       'technical': 'Technical Control',
       'physical': 'Physical Control', 
@@ -89,72 +84,40 @@ const filterPoliciesByCategory = (policies: DatabasePolicy[], activeCategory: st
     
     console.log(`Filtered by ${activeCategory}:`, {
       expectedCategories: dbCategories,
-      filteredCount: filtered.length,
-      filteredPolicies: filtered.map(p => ({
-        title: p.title,
-        category: policies.find(orig => orig.id === p.policy_id)?.category
-      }))
+      filteredCount: filtered.length
     });
   }
   
-  // Handle domain-specific filtering (e.g., 'technical-access-control')
-  else if (activeCategory.includes('-')) {
-    const [frameworkCategory, ...domainParts] = activeCategory.split('-');
-    const domain = domainParts.join(' ').replace(/-/g, ' ');
-    
-    // Convert domain to proper case for matching
-    const domainName = domain.split(' ').map(word => 
-      word.charAt(0).toUpperCase() + word.slice(1)
-    ).join(' ');
-    
-    console.log('Domain filtering:', {
-      frameworkCategory,
-      domain,
-      domainName,
-      activeCategory
-    });
-    
-    // First filter by framework category, then by domain/type
-    const categoryMapping = {
-      'technical': 'Technical Control',
-      'physical': 'Physical Control',
-      'organizational': ['Organizational Control', 'Administrative Control']
+  // Handle specific policy types
+  else {
+    // Map common category names to policy types
+    const typeMapping: { [key: string]: string } = {
+      'access-control': 'Access Control',
+      'data-classification': 'Data Classification',
+      'network-security': 'Network Security',
+      'physical-security': 'Physical Security',
+      'cryptography': 'Cryptography',
+      'incident-management': 'Incident Management',
+      'asset-management': 'Asset Management',
+      'business-continuity': 'Business Continuity',
+      'acceptable-use': 'Acceptable Use'
     };
     
-    const dbCategories = categoryMapping[frameworkCategory as keyof typeof categoryMapping];
+    const policyType = typeMapping[activeCategory] || activeCategory;
     
     filtered = transformed.filter(policy => {
       const originalPolicy = policies.find(p => p.id === policy.policy_id);
-      if (!originalPolicy) return false;
-      
-      // Check if policy matches the framework category
-      let matchesCategory = false;
-      if (Array.isArray(dbCategories)) {
-        matchesCategory = dbCategories.includes(originalPolicy.category);
-      } else {
-        matchesCategory = originalPolicy.category === dbCategories;
-      }
-      
-      // Check if policy matches the domain/type
-      const matchesDomain = originalPolicy.type === domainName ||
-                           originalPolicy.type.toLowerCase().includes(domain.toLowerCase());
-      
-      console.log('Policy domain match check:', {
-        policyTitle: originalPolicy.title,
-        policyCategory: originalPolicy.category,
-        policyType: originalPolicy.type,
-        matchesCategory,
-        matchesDomain,
-        domainName,
-        domain
-      });
-      
-      return matchesCategory && matchesDomain;
+      return originalPolicy && (
+        originalPolicy.type === policyType ||
+        originalPolicy.type.toLowerCase().includes(policyType.toLowerCase()) ||
+        policyType.toLowerCase().includes(originalPolicy.type.toLowerCase())
+      );
     });
     
-    console.log(`Filtered by domain ${activeCategory}:`, {
+    console.log(`Filtered by type ${activeCategory}:`, {
+      policyType,
       filteredCount: filtered.length,
-      filteredPolicies: filtered.map(p => ({
+      matchingPolicies: filtered.map(p => ({
         title: p.title,
         type: policies.find(orig => orig.id === p.policy_id)?.type
       }))
@@ -179,6 +142,7 @@ export default function Index() {
   const [filteredPolicies, setFilteredPolicies] = useState([]);
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [activeCategory, setActiveCategory] = useState('all');
+  const [isSearchActive, setIsSearchActive] = useState(false);
   
   const { user } = useAuth();
   const { toast } = useToast();
@@ -207,20 +171,23 @@ export default function Index() {
 
   // Set initial filtered policies and handle category filtering
   useEffect(() => {
-    console.log('Category filter effect triggered:', {
-      activeCategory,
-      policiesCount: policies.length,
-      policies: policies.map(p => ({ id: p.id, title: p.title, category: p.category, type: p.type }))
-    });
-    
-    const filtered = filterPoliciesByCategory(policies, activeCategory);
-    setFilteredPolicies(filtered);
-    
-    console.log('Updated filtered policies:', {
-      activeCategory,
-      filteredCount: filtered.length
-    });
-  }, [policies, activeCategory]);
+    // Only apply category filtering if no search is active
+    if (!isSearchActive) {
+      console.log('Category filter effect triggered:', {
+        activeCategory,
+        policiesCount: policies.length,
+        isSearchActive
+      });
+      
+      const filtered = filterPoliciesByCategory(policies, activeCategory);
+      setFilteredPolicies(filtered);
+      
+      console.log('Updated filtered policies:', {
+        activeCategory,
+        filteredCount: filtered.length
+      });
+    }
+  }, [policies, activeCategory, isSearchActive]);
 
   // Show auth modal if not authenticated
   useEffect(() => {
@@ -231,7 +198,8 @@ export default function Index() {
 
   const handleSearch = async (query: string, filters: SearchFilters) => {
     try {
-      // Fixed: Remove the extra category parameter from searchPolicies call
+      setIsSearchActive(query.trim() !== '' || filters.tags.length > 0 || filters.type !== '' || filters.status !== '');
+      
       const results = await searchPolicies(
         query,
         filters.tags,
@@ -241,7 +209,6 @@ export default function Index() {
       
       // Transform search results to UI format and add category from main policies
       const transformed = results.map(result => {
-        // Find the corresponding policy in the main policies array to get category
         const fullPolicy = policies.find(p => p.id === result.policy_id);
         return {
           policy_id: result.policy_id,
@@ -280,7 +247,7 @@ export default function Index() {
   const handleCategoryChange = (category: string) => {
     console.log('Category changed to:', category);
     setActiveCategory(category);
-    // The filtering will be handled by the useEffect above
+    setIsSearchActive(false); // Reset search when category changes
   };
 
   const handlePolicyClick = (policy) => {
@@ -289,6 +256,7 @@ export default function Index() {
 
   const handleEditPolicy = (policy) => {
     setSelectedPolicy(policy);
+    setCreateModalOpen(false); // Ensure create modal is closed
     setEditModalOpen(true);
   };
 
@@ -361,7 +329,10 @@ export default function Index() {
     <div className="flex h-screen bg-background">
       <Sidebar 
         onCategoryChange={handleCategoryChange}
-        onNewPolicyClick={() => setCreateModalOpen(true)}
+        onNewPolicyClick={() => {
+          setEditModalOpen(false); // Ensure edit modal is closed
+          setCreateModalOpen(true);
+        }}
         activeCategory={activeCategory}
         policies={filteredPolicies}
       />
@@ -400,7 +371,10 @@ export default function Index() {
                     <Upload className="h-4 w-4 mr-2" />
                     Import XML
                   </Button>
-                  <Button onClick={() => setCreateModalOpen(true)}>
+                  <Button onClick={() => {
+                    setEditModalOpen(false); // Ensure edit modal is closed
+                    setCreateModalOpen(true);
+                  }}>
                     <FileText className="h-4 w-4 mr-2" />
                     New Policy
                   </Button>
@@ -500,7 +474,10 @@ export default function Index() {
             >
               <PolicyDetail
                 policy={selectedPolicy}
-                onEdit={() => setEditModalOpen(true)}
+                onEdit={() => {
+                  setCreateModalOpen(false); // Ensure create modal is closed
+                  setEditModalOpen(true);
+                }}
                 onDownload={handleDownloadPolicy}
                 onDownloadPdf={handleDownloadPdf}
                 onViewVersionHistory={handleViewVersionHistory}

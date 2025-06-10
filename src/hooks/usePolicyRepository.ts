@@ -156,92 +156,233 @@ Regular audits to ensure compliance with classification requirements and identif
     author: "Policy Repository Templates"
   },
   {
-    title: "Acceptable Use Policy",
-    description: "Organizational acceptable use policy defining appropriate use of IT resources and systems by employees and authorized users.",
-    type: "Acceptable Use", 
-    category: "Organizational Control" as const,
+    title: "Network Security Policy",
+    description: "Comprehensive network security policy covering firewalls, intrusion detection, and network monitoring for enterprise environments.",
+    type: "Network Security",
+    category: "Technical Control" as const,
     status: "active" as const,
-    content: `# Acceptable Use Policy
+    content: `# Network Security Policy
 
 ## 1. Purpose
-This policy defines the acceptable use of organizational IT resources including computers, networks, and information systems.
+This policy establishes security requirements for network infrastructure to protect organizational data and systems from unauthorized access and cyber threats.
 
 ## 2. Scope
-This policy applies to all employees, contractors, consultants, and other users of organizational IT resources.
+This policy applies to all network devices, connections, and communications within the organizational network infrastructure.
 
-## 3. Acceptable Use Guidelines
+## 3. Network Architecture
+### 3.1 Network Segmentation
+- Implementation of network zones based on security requirements
+- DMZ for public-facing services
+- Internal networks for business operations
+- Restricted networks for sensitive systems
 
-### 3.1 General Principles
-- IT resources are provided for business purposes
-- Personal use should be minimal and not interfere with work
-- Users must respect intellectual property rights
-- Maintain confidentiality of organizational information
+### 3.2 Firewall Requirements
+- Stateful firewall inspection for all network traffic
+- Default deny policy with explicit allow rules
+- Regular review and update of firewall rules
+- Logging of all blocked and allowed connections
 
-### 3.2 Prohibited Activities
-- Unauthorized access to systems or data
-- Installing unauthorized software or hardware
-- Sharing login credentials with others
-- Using IT resources for illegal activities
-- Downloading or distributing copyrighted material
-- Accessing inappropriate content during work hours
-- Attempting to circumvent security controls
+## 4. Access Controls
+### 4.1 Network Access
+- Authentication required for all network access
+- Network Access Control (NAC) implementation
+- Device compliance verification before network access
+- Guest network isolation from business networks
 
-### 3.3 Email and Communication
-- Professional communication standards required
-- No harassment, discrimination, or offensive content
-- Personal email use should be minimal
-- Confidential information protection in communications
+### 4.2 Remote Access
+- VPN required for all remote connections
+- Multi-factor authentication for VPN access
+- Endpoint security compliance verification
+- Session monitoring and logging
 
-### 3.4 Internet Usage
-- Business-related browsing encouraged
-- Limited personal use during breaks
-- No accessing inappropriate or offensive websites
-- No downloading unauthorized software
+## 5. Monitoring and Detection
+### 5.1 Intrusion Detection
+- Network-based intrusion detection system (NIDS)
+- Real-time monitoring of network traffic
+- Automated alerts for suspicious activities
+- Regular tuning of detection rules
 
-### 3.5 Social Media
-- Professional representation of organization
-- No sharing of confidential information
-- Clear disclaimer when expressing personal opinions
-- Respect for colleagues and organizational reputation
+### 5.2 Network Monitoring
+- Continuous monitoring of network performance
+- Bandwidth utilization tracking
+- Anomaly detection and alerting
+- Regular network security assessments
 
-## 4. Password and Security
-- Strong password requirements
-- No sharing of authentication credentials
-- Report security incidents immediately
-- Lock workstations when unattended
+## 6. Wireless Security
+- WPA3 encryption for all wireless networks
+- Regular password rotation for wireless access
+- Guest network isolation
+- Wireless intrusion detection and prevention
 
-## 5. Mobile Devices and Remote Access
-- Approved devices only for business use
-- Security software installation required
-- Encryption for stored business data
-- Remote wipe capability for lost devices
+## 7. Incident Response
+- Network incident response procedures
+- Isolation capabilities for compromised systems
+- Network forensics capabilities
+- Coordination with cybersecurity incident response team
 
-## 6. Software and Licensing
-- Only authorized software installation
-- Compliance with software licensing agreements
-- No use of pirated or unlicensed software
-- IT approval required for new software
+## 8. Compliance and Auditing
+- Regular network security audits
+- Vulnerability assessments and penetration testing
+- Compliance with industry standards and regulations
+- Documentation of network security controls`,
+    tags: ["network-security", "firewall", "intrusion-detection", "monitoring", "VPN"],
+    author: "Policy Repository Templates"
+  },
+  {
+    title: "Physical Security Policy",
+    description: "Physical security controls for facilities, equipment, and personnel access to protect organizational assets.",
+    type: "Physical Security",
+    category: "Physical Control" as const,
+    status: "active" as const,
+    content: `# Physical Security Policy
 
-## 7. Data Backup and Storage
-- Regular backup of important business data
-- Use approved cloud storage services only
-- No storing business data on personal devices
-- Compliance with data retention policies
+## 1. Purpose
+This policy establishes physical security requirements to protect organizational facilities, equipment, and personnel from unauthorized access and physical threats.
 
-## 8. Monitoring and Privacy
-- IT resources may be monitored for security and compliance
-- No expectation of privacy for business communications
-- Monitoring will be conducted lawfully and ethically
+## 2. Scope
+This policy applies to all organizational facilities, equipment, and personnel access controls.
 
-## 9. Violations and Consequences
-- Violations may result in disciplinary action
-- Immediate suspension of access for serious violations
-- Legal action for criminal activities
-- Cooperation with law enforcement when required
+## 3. Facility Security
+### 3.1 Perimeter Security
+- Secured building perimeters with appropriate barriers
+- Controlled access points with security personnel or systems
+- Surveillance systems covering all entry/exit points
+- Visitor management and escort procedures
 
-## 10. Reporting
-Users must report suspected policy violations, security incidents, or inappropriate use to the IT security team immediately.`,
-    tags: ["acceptable-use", "IT-policy", "employee-guidelines", "security-awareness", "compliance"],
+### 3.2 Access Controls
+- Badge-based access control systems
+- Multi-factor authentication for sensitive areas
+- Tailgating prevention measures
+- Regular access review and updates
+
+## 4. Equipment Security
+### 4.1 Server Rooms and Data Centers
+- Restricted access with biometric or multi-factor authentication
+- Environmental controls (temperature, humidity, fire suppression)
+- Uninterruptible power supply (UPS) systems
+- 24/7 monitoring and surveillance
+
+### 4.2 Workstation Security
+- Cable locks for desktop computers and monitors
+- Clean desk policy enforcement
+- Secure storage for sensitive documents
+- Equipment inventory and tracking
+
+## 5. Personnel Security
+### 5.1 Background Checks
+- Comprehensive background verification for all personnel
+- Regular re-verification for sensitive positions
+- Third-party contractor screening requirements
+- Ongoing monitoring for security clearance personnel
+
+### 5.2 Security Awareness
+- Physical security training for all personnel
+- Tailgating awareness and prevention training
+- Reporting procedures for security incidents
+- Regular security reminders and updates
+
+## 6. Visitor Management
+- Pre-registration and approval process
+- Escort requirements for all visitors
+- Visitor badge identification system
+- Logging of all visitor activities
+
+## 7. Emergency Procedures
+- Evacuation plans and procedures
+- Emergency contact information
+- Coordination with local emergency services
+- Business continuity planning
+
+## 8. Monitoring and Compliance
+- Regular physical security assessments
+- Surveillance system monitoring and maintenance
+- Compliance with regulatory requirements
+- Incident reporting and investigation procedures`,
+    tags: ["physical-security", "facility-security", "access-control", "surveillance", "emergency-procedures"],
+    author: "Policy Repository Templates"
+  },
+  {
+    title: "Cryptography Policy",
+    description: "Organizational cryptography policy defining encryption standards, key management, and cryptographic controls for data protection.",
+    type: "Cryptography",
+    category: "Technical Control" as const,
+    status: "active" as const,
+    content: `# Cryptography Policy
+
+## 1. Purpose
+This policy establishes cryptographic standards and controls to protect organizational data through encryption, digital signatures, and secure key management.
+
+## 2. Scope
+This policy applies to all cryptographic implementations, encryption technologies, and key management systems within the organization.
+
+## 3. Encryption Standards
+### 3.1 Approved Algorithms
+- AES-256 for symmetric encryption
+- RSA-2048 or higher for asymmetric encryption
+- SHA-256 or higher for hashing
+- Elliptic Curve Cryptography (ECC) for mobile applications
+
+### 3.2 Data-at-Rest Encryption
+- Full disk encryption for all workstations and laptops
+- Database encryption for sensitive data
+- File-level encryption for confidential documents
+- Cloud storage encryption requirements
+
+### 3.3 Data-in-Transit Encryption
+- TLS 1.3 for web communications
+- VPN encryption for remote access
+- Email encryption for sensitive communications
+- API encryption for data exchanges
+
+## 4. Key Management
+### 4.1 Key Generation
+- Use of approved random number generators
+- Minimum key length requirements
+- Key generation in secure environments
+- Documentation of key generation procedures
+
+### 4.2 Key Storage and Protection
+- Hardware Security Modules (HSM) for critical keys
+- Secure key escrow and backup procedures
+- Access controls for key management systems
+- Regular key rotation schedules
+
+### 4.3 Key Distribution
+- Secure channels for key distribution
+- Authentication of key recipients
+- Non-repudiation mechanisms
+- Key distribution logging and auditing
+
+## 5. Digital Signatures
+- PKI infrastructure for digital certificates
+- Code signing for software distribution
+- Document signing for legal compliance
+- Certificate lifecycle management
+
+## 6. Mobile Device Encryption
+- Device encryption for all mobile devices
+- Container encryption for business applications
+- Remote wipe capabilities
+- Mobile device management (MDM) integration
+
+## 7. Cloud Cryptography
+- Customer-managed encryption keys (CMEK)
+- Encryption key residency requirements
+- Cloud provider encryption assessments
+- Multi-cloud encryption standards
+
+## 8. Quantum-Safe Cryptography
+- Assessment of quantum computing threats
+- Migration planning for post-quantum cryptography
+- Hybrid cryptographic implementations
+- Regular updates to quantum-safe standards
+
+## 9. Compliance and Monitoring
+- Regular cryptographic assessments
+- Compliance with FIPS 140-2 standards
+- Vulnerability management for cryptographic systems
+- Incident response for cryptographic failures`,
+    tags: ["cryptography", "encryption", "key-management", "digital-signatures", "quantum-safe"],
     author: "Policy Repository Templates"
   }
 ];
@@ -299,34 +440,12 @@ export function usePolicyRepository() {
     searchQuery: string = '',
     filterTags: string[] = [],
     filterType: string = '',
-    filterStatus: string = '',
-    filterCategory: string = ''
+    filterStatus: string = ''
   ) => {
     try {
-      // Type assertion to ensure correct types
       const statusFilter = filterStatus as 'draft' | 'active' | 'archived' | 'under_review' | '';
       
       const results = await searchPoliciesBase(searchQuery, filterTags, filterType, statusFilter);
-      
-      // Additional client-side filtering for category if needed
-      if (filterCategory) {
-        // Map the search results to include category from the main policies array
-        const enrichedResults = results.map(result => {
-          const fullPolicy = policies.find(p => p.id === result.policy_id);
-          return {
-            ...result,
-            category: fullPolicy?.category || 'Technical Control'
-          };
-        }).filter(policy => {
-          if (filterCategory === 'Technical Control' || filterCategory === 'Physical Control' || 
-              filterCategory === 'Organizational Control' || filterCategory === 'Administrative Control') {
-            return policy.category === filterCategory;
-          }
-          return true;
-        });
-        
-        return enrichedResults;
-      }
       
       return results;
     } catch (error) {
