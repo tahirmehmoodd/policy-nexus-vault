@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { usePolicies, type DatabasePolicy } from './usePolicies';
 import { useToast } from '@/components/ui/use-toast';
@@ -144,17 +145,35 @@ export function usePolicyRepository() {
     security_domain: policy.type,
   }));
 
-  const downloadPolicyAsPdf = useCallback(async (policy: DatabasePolicy) => {
+  const downloadPolicyAsPdf = useCallback(async (policy: PolicyData | DatabasePolicy) => {
     try {
       setIsLoading(true);
+      
+      // Handle both PolicyData and DatabasePolicy types
+      const policyData = {
+        title: policy.title,
+        version: 'currentVersion' in policy ? policy.currentVersion : policy.version?.toString() || '1.0',
+        status: policy.status,
+        author: policy.author,
+        type: policy.type,
+        category: 'framework_category' in policy ? policy.framework_category : 
+                 policy.category === 'Technical Control' ? 'technical' : 
+                 policy.category === 'Physical Control' ? 'physical' : 
+                 policy.category === 'Organizational Control' ? 'organizational' : 'organizational',
+        created_at: policy.created_at,
+        updated_at: policy.updated_at,
+        description: policy.description || '',
+        content: policy.content || 'Content not available.',
+        tags: policy.tags || []
+      };
       
       // Create HTML content for PDF
       const htmlContent = `
         <div style="padding: 40px; font-family: Arial, sans-serif; line-height: 1.6;">
           <div style="text-align: center; margin-bottom: 40px; border-bottom: 2px solid #333; padding-bottom: 20px;">
-            <h1 style="color: #333; margin: 0;">${policy.title}</h1>
-            <p style="color: #666; margin: 10px 0;">Version ${policy.version} | ${policy.status.toUpperCase()}</p>
-            <p style="color: #666; margin: 0;">Author: ${policy.author}</p>
+            <h1 style="color: #333; margin: 0;">${policyData.title}</h1>
+            <p style="color: #666; margin: 10px 0;">Version ${policyData.version} | ${policyData.status.toUpperCase()}</p>
+            <p style="color: #666; margin: 0;">Author: ${policyData.author}</p>
           </div>
           
           <div style="margin-bottom: 30px;">
@@ -162,43 +181,43 @@ export function usePolicyRepository() {
             <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
               <tr>
                 <td style="padding: 8px; border: 1px solid #ddd; background-color: #f9f9f9; font-weight: bold; width: 30%;">Type</td>
-                <td style="padding: 8px; border: 1px solid #ddd;">${policy.type}</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${policyData.type}</td>
               </tr>
               <tr>
                 <td style="padding: 8px; border: 1px solid #ddd; background-color: #f9f9f9; font-weight: bold;">Category</td>
-                <td style="padding: 8px; border: 1px solid #ddd;">${policy.category}</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${policyData.category}</td>
               </tr>
               <tr>
                 <td style="padding: 8px; border: 1px solid #ddd; background-color: #f9f9f9; font-weight: bold;">Status</td>
-                <td style="padding: 8px; border: 1px solid #ddd;">${policy.status}</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${policyData.status}</td>
               </tr>
               <tr>
                 <td style="padding: 8px; border: 1px solid #ddd; background-color: #f9f9f9; font-weight: bold;">Created</td>
-                <td style="padding: 8px; border: 1px solid #ddd;">${new Date(policy.created_at).toLocaleDateString()}</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${new Date(policyData.created_at).toLocaleDateString()}</td>
               </tr>
               <tr>
                 <td style="padding: 8px; border: 1px solid #ddd; background-color: #f9f9f9; font-weight: bold;">Last Updated</td>
-                <td style="padding: 8px; border: 1px solid #ddd;">${new Date(policy.updated_at).toLocaleDateString()}</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${new Date(policyData.updated_at).toLocaleDateString()}</td>
               </tr>
-              ${policy.tags && policy.tags.length > 0 ? `
+              ${policyData.tags && policyData.tags.length > 0 ? `
               <tr>
                 <td style="padding: 8px; border: 1px solid #ddd; background-color: #f9f9f9; font-weight: bold;">Tags</td>
-                <td style="padding: 8px; border: 1px solid #ddd;">${policy.tags.join(', ')}</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${policyData.tags.join(', ')}</td>
               </tr>
               ` : ''}
             </table>
           </div>
           
-          ${policy.description ? `
+          ${policyData.description ? `
           <div style="margin-bottom: 30px;">
             <h2 style="color: #444; border-bottom: 1px solid #ccc; padding-bottom: 10px;">Description</h2>
-            <p style="margin-top: 15px; text-align: justify;">${policy.description}</p>
+            <p style="margin-top: 15px; text-align: justify;">${policyData.description}</p>
           </div>
           ` : ''}
           
           <div style="margin-bottom: 30px;">
             <h2 style="color: #444; border-bottom: 1px solid #ccc; padding-bottom: 10px;">Policy Content</h2>
-            <div style="margin-top: 15px; text-align: justify; white-space: pre-wrap;">${policy.content}</div>
+            <div style="margin-top: 15px; text-align: justify; white-space: pre-wrap;">${policyData.content}</div>
           </div>
           
           <div style="margin-top: 40px; text-align: center; color: #666; font-size: 12px; border-top: 1px solid #ccc; padding-top: 20px;">
@@ -209,7 +228,7 @@ export function usePolicyRepository() {
 
       const options = {
         margin: 1,
-        filename: `${policy.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_v${policy.version}.pdf`,
+        filename: `${policyData.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_v${policyData.version}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { scale: 2 },
         jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
