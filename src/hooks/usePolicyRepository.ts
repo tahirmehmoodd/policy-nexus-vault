@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react';
 import { usePolicies, type DatabasePolicy } from './usePolicies';
 import { useToast } from '@/components/ui/use-toast';
-import html2pdf from 'html2pdf.js';
 
 export interface PolicyTemplate {
   id: string;
@@ -149,7 +148,7 @@ export function usePolicyRepository() {
     try {
       setIsLoading(true);
       
-      console.log('=== PDF GENERATION START ===');
+      console.log('=== PDF GENERATION START (New Method) ===');
       console.log('Policy object:', policy);
       
       // Extract data safely
@@ -161,72 +160,141 @@ export function usePolicyRepository() {
       const author = policy.author || 'Unknown Author';
       const type = policy.type || 'General';
       
-      console.log('Extracted data:', { title, content: content.substring(0, 100) + '...' });
+      // Create a new window with the policy content
+      const printWindow = window.open('', '_blank');
       
-      // Create very simple HTML without complex styling
+      if (!printWindow) {
+        throw new Error('Pop-up blocked. Please allow pop-ups for this site to download PDFs.');
+      }
+      
+      // Create clean HTML for printing
       const htmlContent = `
+        <!DOCTYPE html>
         <html>
           <head>
             <meta charset="UTF-8">
+            <title>${title}</title>
             <style>
-              body { font-family: Arial; margin: 20px; }
-              h1 { color: #000; }
-              .info { margin: 10px 0; }
-              .content { margin-top: 20px; padding: 10px; border: 1px solid #ccc; }
+              @media print {
+                body { margin: 0; }
+                .no-print { display: none; }
+              }
+              body {
+                font-family: Arial, sans-serif;
+                line-height: 1.6;
+                margin: 20px;
+                color: #333;
+              }
+              .header {
+                border-bottom: 2px solid #333;
+                padding-bottom: 20px;
+                margin-bottom: 30px;
+              }
+              .title {
+                font-size: 24px;
+                font-weight: bold;
+                margin-bottom: 10px;
+              }
+              .metadata {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+                margin-bottom: 20px;
+              }
+              .metadata-item {
+                padding: 5px 0;
+              }
+              .label {
+                font-weight: bold;
+                display: inline-block;
+                width: 100px;
+              }
+              .content-section {
+                margin-top: 30px;
+              }
+              .content-title {
+                font-size: 18px;
+                font-weight: bold;
+                margin-bottom: 15px;
+                border-bottom: 1px solid #ccc;
+                padding-bottom: 5px;
+              }
+              .content-text {
+                white-space: pre-wrap;
+                background: #f9f9f9;
+                padding: 15px;
+                border-left: 4px solid #007acc;
+                margin: 10px 0;
+              }
+              .no-print {
+                margin: 20px 0;
+                padding: 10px;
+                background: #e7f3ff;
+                border: 1px solid #007acc;
+                border-radius: 5px;
+              }
             </style>
           </head>
           <body>
-            <h1>${title}</h1>
-            <div class="info">Version: ${version}</div>
-            <div class="info">Status: ${status}</div>
-            <div class="info">Author: ${author}</div>
-            <div class="info">Type: ${type}</div>
-            <div class="info">Description: ${description}</div>
-            <div class="content">
-              <h2>Content</h2>
-              <p>${content.replace(/\n/g, '<br>')}</p>
+            <div class="header">
+              <div class="title">${title}</div>
+              <div class="metadata">
+                <div class="metadata-item">
+                  <span class="label">Version:</span> ${version}
+                </div>
+                <div class="metadata-item">
+                  <span class="label">Status:</span> ${status}
+                </div>
+                <div class="metadata-item">
+                  <span class="label">Author:</span> ${author}
+                </div>
+                <div class="metadata-item">
+                  <span class="label">Type:</span> ${type}
+                </div>
+              </div>
+              <div class="metadata-item">
+                <span class="label">Description:</span> ${description}
+              </div>
+            </div>
+            
+            <div class="content-section">
+              <div class="content-title">Policy Content</div>
+              <div class="content-text">${content}</div>
+            </div>
+            
+            <div class="no-print">
+              <p><strong>Instructions:</strong></p>
+              <p>1. Use Ctrl+P (or Cmd+P on Mac) to open the print dialog</p>
+              <p>2. Select "Save as PDF" as the destination</p>
+              <p>3. Choose your preferred settings and save</p>
+              <button onclick="window.print()" style="padding: 10px 20px; background: #007acc; color: white; border: none; border-radius: 5px; cursor: pointer;">Print/Save as PDF</button>
+              <button onclick="window.close()" style="padding: 10px 20px; background: #666; color: white; border: none; border-radius: 5px; cursor: pointer; margin-left: 10px;">Close</button>
             </div>
           </body>
         </html>
       `;
       
-      console.log('HTML generated, length:', htmlContent.length);
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
       
-      // Use simpler options
-      const element = document.createElement('div');
-      element.innerHTML = htmlContent;
+      // Auto-trigger print dialog after a short delay
+      setTimeout(() => {
+        printWindow.print();
+      }, 500);
       
-      const opt = {
-        margin: 1,
-        filename: `${title.replace(/[^a-z0-9]/gi, '_')}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-      };
-      
-      console.log('Starting PDF generation with options:', opt);
-      
-      // Generate PDF
-      await html2pdf().set(opt).from(element).save();
-      
-      console.log('PDF generation completed successfully');
+      console.log('PDF generation window opened successfully');
       
       toast({
-        title: "Success",
-        description: `Policy "${title}" downloaded as PDF`,
+        title: "PDF Ready",
+        description: `Policy "${title}" opened in new window. Use Ctrl+P to save as PDF.`,
       });
       
     } catch (error) {
       console.error('PDF Generation Error:', error);
-      console.error('Error details:', {
-        message: error?.message,
-        stack: error?.stack,
-        name: error?.name
-      });
       
       toast({
         title: "Error",
-        description: "Failed to generate PDF. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to generate PDF. Please try again.",
         variant: "destructive",
       });
     } finally {
