@@ -11,9 +11,10 @@ interface PolicyListProps {
   onPolicyClick: (policy: Policy) => void;
   onEditPolicy?: (policy: Policy) => void;
   onDownloadPolicy?: (policy: Policy) => void;
+  onDeletePolicy?: (policy: Policy) => void;
 }
 
-export function PolicyList({ policies, onPolicyClick, onEditPolicy, onDownloadPolicy }: PolicyListProps) {
+export function PolicyList({ policies, onPolicyClick, onEditPolicy, onDownloadPolicy, onDeletePolicy }: PolicyListProps) {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   return (
@@ -66,6 +67,7 @@ export function PolicyList({ policies, onPolicyClick, onEditPolicy, onDownloadPo
                 onClick={() => onPolicyClick(policy)}
                 onEdit={onEditPolicy ? () => onEditPolicy(policy) : undefined}
                 onDownload={onDownloadPolicy ? () => onDownloadPolicy(policy) : undefined}
+                onDelete={onDeletePolicy ? () => onDeletePolicy(policy) : undefined}
                 viewMode={viewMode}
               />
             </motion.div>

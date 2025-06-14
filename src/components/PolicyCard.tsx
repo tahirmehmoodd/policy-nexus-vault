@@ -12,19 +12,32 @@ import {
   DownloadIcon,
   EditIcon,
   HistoryIcon,
-  EyeIcon
+  EyeIcon,
+  Trash2Icon
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface PolicyCardProps {
   policy: Policy;
   onClick: () => void;
   onEdit?: () => void;
   onDownload?: (policy: Policy) => void;
+  onDelete?: (policy: Policy) => void;
   viewMode?: 'grid' | 'list';
 }
 
-export function PolicyCard({ policy, onClick, onEdit, onDownload, viewMode = 'grid' }: PolicyCardProps) {
+export function PolicyCard({ policy, onClick, onEdit, onDownload, onDelete, viewMode = 'grid' }: PolicyCardProps) {
   const { toast } = useToast();
 
   const handleDownloadJSON = (e: React.MouseEvent) => {
@@ -144,6 +157,13 @@ export function PolicyCard({ policy, onClick, onEdit, onDownload, viewMode = 'gr
     });
   };
 
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onDelete) {
+      onDelete(policy);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -225,6 +245,29 @@ export function PolicyCard({ policy, onClick, onEdit, onDownload, viewMode = 'gr
                 }}>
                   <EditIcon className="h-4 w-4" />
                 </Button>
+              )}
+              {onDelete && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline" size="sm" onClick={(e) => e.stopPropagation()}>
+                      <Trash2Icon className="h-4 w-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Policy</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete "{policy.title}"? This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               )}
             </div>
           </div>
@@ -331,6 +374,29 @@ export function PolicyCard({ policy, onClick, onEdit, onDownload, viewMode = 'gr
           <Button variant="ghost" size="sm" onClick={onClick}>
             <EyeIcon className="h-4 w-4" />
           </Button>
+          {onDelete && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" size="sm" onClick={(e) => e.stopPropagation()}>
+                  <Trash2Icon className="h-4 w-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete Policy</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to delete "{policy.title}"? This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
         </div>
       </CardContent>
     </Card>
