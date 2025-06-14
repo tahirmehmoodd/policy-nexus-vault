@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { usePolicies, type DatabasePolicy } from './usePolicies';
 import { useToast } from '@/components/ui/use-toast';
@@ -148,157 +149,172 @@ export function usePolicyRepository() {
     try {
       setIsLoading(true);
       
-      console.log('=== PDF GENERATION START (New Method) ===');
-      console.log('Policy object:', policy);
+      console.log('=== DETAILED PDF DEBUG START ===');
+      console.log('Raw policy object:', JSON.stringify(policy, null, 2));
+      console.log('Policy type:', typeof policy);
+      console.log('Policy keys:', Object.keys(policy));
       
-      // Extract data safely
-      const title = policy.title || 'Untitled Policy';
-      const description = policy.description || 'No description available';
-      const content = ('content' in policy ? policy.content : '') || 'No content available';
-      const version = 'currentVersion' in policy ? policy.currentVersion : policy.version?.toString() || '1.0';
-      const status = policy.status || 'draft';
-      const author = policy.author || 'Unknown Author';
-      const type = policy.type || 'General';
+      // More defensive content extraction
+      let title, description, content, version, status, author, type;
       
-      // Create a new window with the policy content
-      const printWindow = window.open('', '_blank');
-      
-      if (!printWindow) {
-        throw new Error('Pop-up blocked. Please allow pop-ups for this site to download PDFs.');
+      if ('currentVersion' in policy) {
+        // PolicyData format
+        title = policy.title || 'Untitled Policy';
+        description = policy.description || 'No description available';
+        content = policy.content || 'No content available';
+        version = policy.currentVersion || '1.0';
+        status = policy.status || 'draft';
+        author = policy.author || 'Unknown Author';
+        type = policy.type || 'General';
+      } else {
+        // DatabasePolicy format
+        title = policy.title || 'Untitled Policy';
+        description = policy.description || 'No description available';
+        content = policy.content || 'No content available';
+        version = policy.version?.toString() || '1.0';
+        status = policy.status || 'draft';
+        author = policy.author || 'Unknown Author';
+        type = policy.type || 'General';
       }
       
-      // Create clean HTML for printing
-      const htmlContent = `
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <meta charset="UTF-8">
-            <title>${title}</title>
-            <style>
-              @media print {
-                body { margin: 0; }
-                .no-print { display: none; }
-              }
-              body {
-                font-family: Arial, sans-serif;
-                line-height: 1.6;
-                margin: 20px;
-                color: #333;
-              }
-              .header {
-                border-bottom: 2px solid #333;
-                padding-bottom: 20px;
-                margin-bottom: 30px;
-              }
-              .title {
-                font-size: 24px;
-                font-weight: bold;
-                margin-bottom: 10px;
-              }
-              .metadata {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 10px;
-                margin-bottom: 20px;
-              }
-              .metadata-item {
-                padding: 5px 0;
-              }
-              .label {
-                font-weight: bold;
-                display: inline-block;
-                width: 100px;
-              }
-              .content-section {
-                margin-top: 30px;
-              }
-              .content-title {
-                font-size: 18px;
-                font-weight: bold;
-                margin-bottom: 15px;
-                border-bottom: 1px solid #ccc;
-                padding-bottom: 5px;
-              }
-              .content-text {
-                white-space: pre-wrap;
-                background: #f9f9f9;
-                padding: 15px;
-                border-left: 4px solid #007acc;
-                margin: 10px 0;
-              }
-              .no-print {
-                margin: 20px 0;
-                padding: 10px;
-                background: #e7f3ff;
-                border: 1px solid #007acc;
-                border-radius: 5px;
-              }
-            </style>
-          </head>
-          <body>
-            <div class="header">
-              <div class="title">${title}</div>
-              <div class="metadata">
-                <div class="metadata-item">
-                  <span class="label">Version:</span> ${version}
-                </div>
-                <div class="metadata-item">
-                  <span class="label">Status:</span> ${status}
-                </div>
-                <div class="metadata-item">
-                  <span class="label">Author:</span> ${author}
-                </div>
-                <div class="metadata-item">
-                  <span class="label">Type:</span> ${type}
-                </div>
-              </div>
-              <div class="metadata-item">
-                <span class="label">Description:</span> ${description}
-              </div>
-            </div>
-            
-            <div class="content-section">
-              <div class="content-title">Policy Content</div>
-              <div class="content-text">${content}</div>
-            </div>
-            
-            <div class="no-print">
-              <p><strong>Instructions:</strong></p>
-              <p>1. Use Ctrl+P (or Cmd+P on Mac) to open the print dialog</p>
-              <p>2. Select "Save as PDF" as the destination</p>
-              <p>3. Choose your preferred settings and save</p>
-              <button onclick="window.print()" style="padding: 10px 20px; background: #007acc; color: white; border: none; border-radius: 5px; cursor: pointer;">Print/Save as PDF</button>
-              <button onclick="window.close()" style="padding: 10px 20px; background: #666; color: white; border: none; border-radius: 5px; cursor: pointer; margin-left: 10px;">Close</button>
-            </div>
-          </body>
-        </html>
-      `;
+      console.log('Extracted values:');
+      console.log('- title:', title);
+      console.log('- description:', description);
+      console.log('- content length:', content.length);
+      console.log('- version:', version);
+      console.log('- status:', status);
+      console.log('- author:', author);
+      console.log('- type:', type);
       
-      printWindow.document.write(htmlContent);
-      printWindow.document.close();
+      // Simple text-based PDF generation using data URI
+      const pdfContent = `
+POLICY DOCUMENT
+===============
+
+Title: ${title}
+Version: ${version}
+Status: ${status}
+Author: ${author}
+Type: ${type}
+
+Description:
+${description}
+
+Policy Content:
+${content}
+
+Generated on: ${new Date().toLocaleString()}
+`;
+
+      console.log('Generated PDF content:', pdfContent);
       
-      // Auto-trigger print dialog after a short delay
-      setTimeout(() => {
-        printWindow.print();
-      }, 500);
+      // Create downloadable text file as PDF alternative
+      const blob = new Blob([pdfContent], { type: 'text/plain' });
+      const url = window.URL.createObjectURL(blob);
       
-      console.log('PDF generation window opened successfully');
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_v${version}.txt`;
+      
+      console.log('Download link created:', link.href);
+      console.log('Download filename:', link.download);
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      window.URL.revokeObjectURL(url);
+      
+      console.log('File download triggered successfully');
       
       toast({
-        title: "PDF Ready",
-        description: `Policy "${title}" opened in new window. Use Ctrl+P to save as PDF.`,
+        title: "Download Ready",
+        description: `Policy "${title}" downloaded as text file. Converting to PDF...`,
       });
+      
+      // Try alternative PDF generation with jsPDF
+      setTimeout(() => {
+        try {
+          const printWindow = window.open('', '_blank');
+          
+          if (!printWindow) {
+            throw new Error('Pop-up blocked');
+          }
+          
+          const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>${title}</title>
+  <style>
+    body { 
+      font-family: Arial, sans-serif; 
+      margin: 20px; 
+      line-height: 1.6; 
+    }
+    .header { 
+      border-bottom: 2px solid #000; 
+      padding-bottom: 10px; 
+      margin-bottom: 20px; 
+    }
+    .title { 
+      font-size: 24px; 
+      font-weight: bold; 
+    }
+    .meta { 
+      margin: 10px 0; 
+    }
+    .content { 
+      margin-top: 20px; 
+      white-space: pre-wrap; 
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="title">${title}</div>
+    <div class="meta">Version: ${version} | Status: ${status}</div>
+    <div class="meta">Author: ${author} | Type: ${type}</div>
+  </div>
+  <div class="meta">
+    <strong>Description:</strong><br>
+    ${description}
+  </div>
+  <div class="content">
+    <strong>Policy Content:</strong><br>
+    ${content}
+  </div>
+  <script>
+    window.onload = function() {
+      setTimeout(() => window.print(), 500);
+    };
+  </script>
+</body>
+</html>`;
+          
+          printWindow.document.write(htmlContent);
+          printWindow.document.close();
+          
+          console.log('Print window opened successfully');
+          
+        } catch (printError) {
+          console.error('Print window error:', printError);
+        }
+      }, 1000);
       
     } catch (error) {
       console.error('PDF Generation Error:', error);
+      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
       
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to generate PDF. Please try again.",
+        description: "Failed to generate PDF. Check console for details.",
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
+      console.log('=== PDF DEBUG END ===');
     }
   }, [toast]);
 
