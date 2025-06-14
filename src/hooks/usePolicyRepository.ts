@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { usePolicies, type DatabasePolicy } from './usePolicies';
 import { useToast } from '@/components/ui/use-toast';
@@ -149,120 +150,126 @@ export function usePolicyRepository() {
     try {
       setIsLoading(true);
       
-      console.log('=== PDF DEBUG START ===');
-      console.log('Policy object received:', policy);
-      console.log('Policy keys:', Object.keys(policy));
-      console.log('Policy title:', policy.title);
-      console.log('Policy content length:', policy.content?.length || 0);
-      console.log('Policy content preview:', policy.content?.substring(0, 100));
+      console.log('=== PDF GENERATION DEBUG ===');
+      console.log('Raw policy object:', policy);
       
-      // Extract data with better fallbacks
+      // Extract content with better error handling
+      let content = '';
+      if ('content' in policy && policy.content) {
+        content = policy.content;
+      } else if ('content' in policy && !policy.content) {
+        content = 'No content available for this policy.';
+      } else {
+        content = 'Content not found.';
+      }
+      
+      console.log('Extracted content length:', content.length);
+      console.log('Content preview:', content.substring(0, 200));
+      
       const title = policy.title || 'Untitled Policy';
-      const description = policy.description || '';
-      const content = policy.content || 'No content available';
+      const description = policy.description || 'No description available';
       const version = 'currentVersion' in policy ? policy.currentVersion : policy.version?.toString() || '1.0';
       const status = policy.status || 'draft';
-      const author = policy.author || 'Unknown';
+      const author = policy.author || 'Unknown Author';
       const type = policy.type || 'General';
-      const tags = policy.tags || [];
       const policyId = 'policy_id' in policy ? policy.policy_id : policy.id;
       
-      console.log('Extracted data:', {
-        title,
-        description: description.substring(0, 50),
-        content: content.substring(0, 50),
-        version,
-        status,
-        author,
-        type,
-        policyId,
-        tagsCount: tags.length
-      });
-
-      // Create a simple, working HTML structure
+      console.log('PDF Data:', { title, version, status, author, type, policyId });
+      
+      // Create simplified HTML with inline styles
       const htmlContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <title>${title}</title>
-          <style>
-            body { 
-              font-family: Arial, sans-serif; 
-              line-height: 1.6; 
-              margin: 20px; 
-              color: #333; 
-            }
-            .header { 
-              text-align: center; 
-              border-bottom: 2px solid #333; 
-              padding-bottom: 20px; 
-              margin-bottom: 30px; 
-            }
-            .content { 
-              margin: 20px 0; 
-              white-space: pre-wrap; 
-            }
-            .info-row { 
-              margin: 10px 0; 
-            }
-            .label { 
-              font-weight: bold; 
-            }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h1>${title}</h1>
-            <p>Version ${version} - ${status.toUpperCase()}</p>
-          </div>
-          
-          <div class="info-row">
-            <span class="label">Policy ID:</span> ${policyId}
-          </div>
-          <div class="info-row">
-            <span class="label">Author:</span> ${author}
-          </div>
-          <div class="info-row">
-            <span class="label">Type:</span> ${type}
-          </div>
-          
-          ${description ? `
-          <div class="info-row">
-            <span class="label">Description:</span>
-            <div>${description}</div>
-          </div>
-          ` : ''}
-          
-          <div class="info-row">
-            <span class="label">Content:</span>
-            <div class="content">${content}</div>
-          </div>
-          
-          ${tags.length > 0 ? `
-          <div class="info-row">
-            <span class="label">Tags:</span> ${tags.join(', ')}
-          </div>
-          ` : ''}
-        </body>
-        </html>
-      `;
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>${title}</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { 
+      font-family: Arial, sans-serif; 
+      line-height: 1.5; 
+      margin: 20px; 
+      color: #000;
+      background: white;
+    }
+    .header { 
+      text-align: center; 
+      border-bottom: 2px solid #000; 
+      padding-bottom: 15px; 
+      margin-bottom: 20px; 
+    }
+    .title { 
+      font-size: 24px; 
+      font-weight: bold; 
+      margin: 0 0 10px 0; 
+    }
+    .subtitle { 
+      font-size: 14px; 
+      color: #666; 
+      margin: 0; 
+    }
+    .info { 
+      margin: 15px 0; 
+      font-size: 12px; 
+    }
+    .label { 
+      font-weight: bold; 
+      display: inline-block; 
+      width: 100px; 
+    }
+    .content-section { 
+      margin-top: 20px; 
+      padding: 15px; 
+      border: 1px solid #ddd; 
+      background: #f9f9f9; 
+    }
+    .content-title { 
+      font-weight: bold; 
+      font-size: 16px; 
+      margin-bottom: 10px; 
+    }
+    .content-text { 
+      white-space: pre-wrap; 
+      font-size: 12px; 
+      line-height: 1.4; 
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1 class="title">${title}</h1>
+    <p class="subtitle">Version ${version} - ${status.toUpperCase()}</p>
+  </div>
+  
+  <div class="info">
+    <div><span class="label">Policy ID:</span> ${policyId}</div>
+    <div><span class="label">Author:</span> ${author}</div>
+    <div><span class="label">Type:</span> ${type}</div>
+    <div><span class="label">Description:</span> ${description}</div>
+  </div>
+  
+  <div class="content-section">
+    <div class="content-title">Policy Content</div>
+    <div class="content-text">${content}</div>
+  </div>
+</body>
+</html>`;
 
-      console.log('HTML content created, length:', htmlContent.length);
-      console.log('HTML preview:', htmlContent.substring(0, 500));
-
+      console.log('Generated HTML length:', htmlContent.length);
+      
       const filename = `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_v${version}.pdf`;
       
-      console.log('Starting PDF generation with filename:', filename);
+      console.log('Starting PDF generation...');
       
       const options = {
-        margin: 10,
+        margin: [10, 10, 10, 10],
         filename: filename,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { 
           scale: 1,
-          logging: true,
-          useCORS: true
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#ffffff'
         },
         jsPDF: { 
           unit: 'mm', 
@@ -273,22 +280,17 @@ export function usePolicyRepository() {
 
       await html2pdf().set(options).from(htmlContent).save();
       
-      console.log('PDF generation completed successfully');
-      console.log('=== PDF DEBUG END ===');
+      console.log('PDF generated successfully');
       
       toast({
         title: "Success",
         description: `Policy "${title}" downloaded as PDF successfully`,
       });
     } catch (error) {
-      console.error('=== PDF ERROR ===');
-      console.error('Error details:', error);
-      console.error('Error stack:', error.stack);
-      console.error('=== PDF ERROR END ===');
-      
+      console.error('PDF Generation Error:', error);
       toast({
         title: "Error",
-        description: "Failed to generate PDF. Check console for details.",
+        description: "Failed to generate PDF. Please try again.",
         variant: "destructive",
       });
     } finally {
