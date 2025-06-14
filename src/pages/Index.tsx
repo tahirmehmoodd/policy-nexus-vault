@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { PolicyList } from "@/components/PolicyList";
@@ -544,7 +543,7 @@ export default function Index() {
       <VersionHistoryModal
         open={versionHistoryOpen}
         onOpenChange={setVersionHistoryOpen}
-        policy={selectedPolicy ? policies.find(p => p.id === selectedPolicy.policy_id) : null}
+        policy={selectedPolicy}
       />
 
       {/* Documentation Modal */}
