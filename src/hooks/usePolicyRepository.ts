@@ -148,30 +148,30 @@ export function usePolicyRepository() {
     try {
       setIsLoading(true);
       
-      console.log('PDF Download - Input policy:', policy);
-      
-      // Extract policy data - handle both UI format and database format
-      let policyData;
+      // Simple data extraction - handle both formats
+      let title, description, content, version, status, author, type;
       
       if ('policy_id' in policy) {
-        // This is UI format (PolicyData) - find the original database policy
-        const dbPolicy = policies.find(p => p.id === policy.policy_id);
-        console.log('Found database policy:', dbPolicy);
-        policyData = dbPolicy || policy;
+        // UI format (PolicyData)
+        title = policy.title || 'Untitled Policy';
+        description = policy.description || 'No description available';
+        content = policy.content || 'No content available';
+        version = policy.currentVersion || '1.0';
+        status = policy.status || 'draft';
+        author = policy.author || 'Unknown Author';
+        type = policy.type || 'General';
       } else {
-        // This is already database format (DatabasePolicy)
-        policyData = policy;
+        // Database format (DatabasePolicy)
+        title = policy.title || 'Untitled Policy';
+        description = policy.description || 'No description available';
+        content = policy.content || 'No content available';
+        version = policy.version?.toString() || '1.0';
+        status = policy.status || 'draft';
+        author = policy.author || 'Unknown Author';
+        type = policy.type || 'General';
       }
       
-      const title = policyData.title || 'Untitled Policy';
-      const description = policyData.description || 'No description available';
-      const content = policyData.content || 'No content available';
-      const version = policyData.version?.toString() || '1.0';
-      const status = policyData.status || 'draft';
-      const author = policyData.author || 'Unknown Author';
-      const type = policyData.type || 'General';
-      
-      console.log('PDF Data extracted:', { title, content: content.substring(0, 50) + '...', version });
+      console.log('PDF Generation - Extracted data:', { title, content: content.substring(0, 100) });
       
       const htmlContent = `
 <!DOCTYPE html>
@@ -180,11 +180,35 @@ export function usePolicyRepository() {
     <meta charset="UTF-8">
     <title>${title}</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
-        h1 { color: #333; border-bottom: 2px solid #ccc; padding-bottom: 10px; }
-        .meta { background: #f5f5f5; padding: 15px; margin: 20px 0; }
-        .content { margin: 20px 0; padding: 20px; border: 1px solid #ddd; }
-        @media print { body { margin: 20px; } }
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 40px; 
+            line-height: 1.6; 
+            color: #333;
+        }
+        h1 { 
+            color: #333; 
+            border-bottom: 2px solid #ccc; 
+            padding-bottom: 10px; 
+            margin-bottom: 20px;
+        }
+        .meta { 
+            background: #f5f5f5; 
+            padding: 15px; 
+            margin: 20px 0; 
+            border-radius: 5px;
+        }
+        .content { 
+            margin: 20px 0; 
+            padding: 20px; 
+            border: 1px solid #ddd; 
+            border-radius: 5px;
+            white-space: pre-wrap;
+        }
+        @media print { 
+            body { margin: 20px; }
+            .no-print { display: none; }
+        }
     </style>
 </head>
 <body>
@@ -199,6 +223,9 @@ export function usePolicyRepository() {
     <p>${description}</p>
     <h2>Content</h2>
     <div class="content">${content}</div>
+    <div class="no-print" style="margin-top: 40px; padding: 20px; background: #e3f2fd; border-radius: 5px;">
+        <p><strong>Instructions:</strong> Use Ctrl+P (Cmd+P on Mac) and select "Save as PDF" to download this policy as a PDF file.</p>
+    </div>
 </body>
 </html>`;
 
@@ -226,7 +253,7 @@ export function usePolicyRepository() {
     } finally {
       setIsLoading(false);
     }
-  }, [toast, policies]);
+  }, [toast]);
 
   return {
     // Data
