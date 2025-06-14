@@ -15,7 +15,6 @@ import {
   EyeIcon
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import html2pdf from 'html2pdf.js';
 
 interface PolicyCardProps {
   policy: Policy;
@@ -56,92 +55,92 @@ export function PolicyCard({ policy, onClick, onEdit, onDownload, viewMode = 'gr
   const handleDownloadPDF = (e: React.MouseEvent) => {
     e.stopPropagation();
     
-    // Create HTML content for PDF
-    const pdfContent = `
-      <div style="font-family: Arial, sans-serif; padding: 20px;">
-        <div style="border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 30px;">
-          <h1 style="color: #333; font-size: 24px; margin-bottom: 10px;">${policy.title}</h1>
-          <div>Security Policy Document - Version ${policy.currentVersion}</div>
-        </div>
-        
-        <div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
-          <div style="margin: 5px 0;"><strong>Policy ID:</strong> ${policy.policy_id}</div>
-          <div style="margin: 5px 0;"><strong>Status:</strong> ${policy.status.toUpperCase()}</div>
-          <div style="margin: 5px 0;"><strong>Type:</strong> ${policy.type}</div>
-          <div style="margin: 5px 0;"><strong>Framework Category:</strong> ${policy.framework_category}</div>
-          <div style="margin: 5px 0;"><strong>Security Domain:</strong> ${policy.security_domain || 'General'}</div>
-          <div style="margin: 5px 0;"><strong>Author:</strong> ${policy.author}</div>
-          <div style="margin: 5px 0;"><strong>Created:</strong> ${new Date(policy.created_at).toLocaleDateString()}</div>
-          <div style="margin: 5px 0;"><strong>Last Updated:</strong> ${new Date(policy.updated_at).toLocaleDateString()}</div>
-        </div>
-
-        ${policy.description ? `
-        <div style="margin: 20px 0;">
-          <h2 style="color: #555; font-size: 18px; margin: 20px 0 10px 0; border-bottom: 1px solid #ddd; padding-bottom: 5px;">Description</h2>
-          <p>${policy.description}</p>
-        </div>
-        ` : ''}
-
-        <div style="margin: 20px 0;">
-          <h2 style="color: #555; font-size: 18px; margin: 20px 0 10px 0; border-bottom: 1px solid #ddd; padding-bottom: 5px;">Policy Content</h2>
-          <div style="white-space: pre-wrap; background: #f9f9f9; padding: 15px; border-radius: 5px; border-left: 4px solid #2196f3;">${policy.content}</div>
-        </div>
-
-        ${policy.tags && policy.tags.length > 0 ? `
-        <div style="margin: 20px 0;">
-          <h2 style="color: #555; font-size: 18px; margin: 20px 0 10px 0; border-bottom: 1px solid #ddd; padding-bottom: 5px;">Tags</h2>
-          <div>
-            ${policy.tags.map(tag => `<span style="background: #e3f2fd; padding: 3px 8px; border-radius: 3px; margin-right: 5px; font-size: 12px;">${tag}</span>`).join('')}
-          </div>
-        </div>
-        ` : ''}
-
-        ${policy.versions && policy.versions.length > 0 ? `
-        <div style="margin: 20px 0;">
-          <h2 style="color: #555; font-size: 18px; margin: 20px 0 10px 0; border-bottom: 1px solid #ddd; padding-bottom: 5px;">Version History</h2>
-          ${policy.versions.map(v => `
-            <div style="margin: 10px 0; padding: 10px; background: #f9f9f9; border-radius: 5px;">
-              <strong>Version ${v.version_label}:</strong> ${v.description || 'No description provided'}<br>
-              <small>Created: ${new Date(v.created_at).toLocaleDateString()} by ${v.edited_by || 'Unknown'}</small>
-            </div>
-          `).join('')}
-        </div>
-        ` : ''}
-
-        <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #666;">
-          <div>Generated on: ${new Date().toLocaleString()}</div>
-          <div>Information Security Policy Repository</div>
-        </div>
-      </div>
-    `;
+    console.log('PolicyCard PDF Download - Input policy:', policy);
     
-    // Create a temporary container for the PDF content
-    const container = document.createElement('div');
-    container.innerHTML = pdfContent;
-    container.style.position = 'absolute';
-    container.style.left = '-9999px';
-    document.body.appendChild(container);
+    // Extract data safely
+    const title = policy.title || 'Untitled Policy';
+    const description = policy.description || 'No description available';
+    const content = policy.content || 'No content available';
+    const version = policy.currentVersion || '1.0';
+    const status = policy.status || 'draft';
+    const author = policy.author || 'Unknown Author';
+    const type = policy.type || 'General';
     
-    // Generate PDF using html2pdf
-    const filename = `${policy.title.replace(/\s+/g, '_')}_${policy.currentVersion}.pdf`;
+    console.log('PolicyCard PDF - Extracted data:', { title, content: content.substring(0, 100) });
     
-    const options = {
-      margin: 10,
-      filename: filename,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, logging: false },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    };
-    
-    html2pdf().set(options).from(container).save().then(() => {
-      // Remove the temporary container after PDF generation
-      document.body.removeChild(container);
-      
+    const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>${title}</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 40px; 
+            line-height: 1.6; 
+            color: #333;
+        }
+        h1 { 
+            color: #333; 
+            border-bottom: 2px solid #ccc; 
+            padding-bottom: 10px; 
+            margin-bottom: 20px;
+        }
+        .meta { 
+            background: #f5f5f5; 
+            padding: 15px; 
+            margin: 20px 0; 
+            border-radius: 5px;
+        }
+        .content { 
+            margin: 20px 0; 
+            padding: 20px; 
+            border: 1px solid #ddd; 
+            border-radius: 5px;
+            white-space: pre-wrap;
+        }
+        @media print { 
+            body { margin: 20px; }
+            .no-print { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <h1>${title}</h1>
+    <div class="meta">
+        <p><strong>Version:</strong> ${version}</p>
+        <p><strong>Status:</strong> ${status}</p>
+        <p><strong>Type:</strong> ${type}</p>
+        <p><strong>Author:</strong> ${author}</p>
+    </div>
+    <h2>Description</h2>
+    <p>${description}</p>
+    <h2>Content</h2>
+    <div class="content">${content}</div>
+    <div class="no-print" style="margin-top: 40px; padding: 20px; background: #e3f2fd; border-radius: 5px;">
+        <p><strong>Instructions:</strong> Use Ctrl+P (Cmd+P on Mac) and select "Save as PDF" to download this policy as a PDF file.</p>
+    </div>
+</body>
+</html>`;
+
+    const newWindow = window.open('', '_blank');
+    if (!newWindow) {
       toast({
-        title: "Download Started",
-        description: `${policy.title} PDF file downloaded successfully.`,
-        duration: 3000,
+        title: "Error",
+        description: "Please allow pop-ups to download PDF",
+        variant: "destructive",
       });
+      return;
+    }
+
+    newWindow.document.write(htmlContent);
+    newWindow.document.close();
+    newWindow.focus();
+    
+    toast({
+      title: "PDF Ready",
+      description: "Use Ctrl+P (Cmd+P on Mac) and select 'Save as PDF'",
     });
   };
 
