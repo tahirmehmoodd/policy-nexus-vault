@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { usePolicies, type DatabasePolicy } from './usePolicies';
 import { useToast } from '@/components/ui/use-toast';
@@ -149,124 +148,85 @@ export function usePolicyRepository() {
     try {
       setIsLoading(true);
       
-      console.log('Starting PDF download for policy:', policy);
+      console.log('PDF Download - Input policy:', policy);
       
-      // Extract policy data safely
-      const title = policy.title || 'Untitled Policy';
-      const description = policy.description || 'No description available';
-      const content = policy.content || 'No content available';
-      const version = 'currentVersion' in policy ? policy.currentVersion : policy.version?.toString() || '1.0';
-      const status = policy.status || 'draft';
-      const author = policy.author || 'Unknown Author';
-      const type = policy.type || 'General';
+      // Extract policy data - handle both UI format and database format
+      let policyData;
       
-      console.log('Extracted data:', { title, description, content: content.substring(0, 100) + '...', version, status, author, type });
+      if ('policy_id' in policy) {
+        // This is UI format (PolicyData) - find the original database policy
+        const dbPolicy = policies.find(p => p.id === policy.policy_id);
+        console.log('Found database policy:', dbPolicy);
+        policyData = dbPolicy || policy;
+      } else {
+        // This is already database format (DatabasePolicy)
+        policyData = policy;
+      }
       
-      // Create a simple, clean HTML document
+      const title = policyData.title || 'Untitled Policy';
+      const description = policyData.description || 'No description available';
+      const content = policyData.content || 'No content available';
+      const version = policyData.version?.toString() || '1.0';
+      const status = policyData.status || 'draft';
+      const author = policyData.author || 'Unknown Author';
+      const type = policyData.type || 'General';
+      
+      console.log('PDF Data extracted:', { title, content: content.substring(0, 50) + '...', version });
+      
       const htmlContent = `
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${title}</title>
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            max-width: 210mm;
-            margin: 0 auto;
-            padding: 20mm;
-            background: white;
-        }
-        h1 {
-            color: #2563eb;
-            border-bottom: 2px solid #e5e7eb;
-            padding-bottom: 10px;
-            margin-bottom: 20px;
-        }
-        .meta {
-            background: #f9fafb;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 20px 0;
-        }
-        .meta-item {
-            margin: 5px 0;
-        }
-        .content {
-            white-space: pre-wrap;
-            background: #ffffff;
-            padding: 20px;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            margin: 20px 0;
-        }
-        @media print {
-            body { margin: 0; padding: 20mm; }
-            .no-print { display: none; }
-        }
+        body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
+        h1 { color: #333; border-bottom: 2px solid #ccc; padding-bottom: 10px; }
+        .meta { background: #f5f5f5; padding: 15px; margin: 20px 0; }
+        .content { margin: 20px 0; padding: 20px; border: 1px solid #ddd; }
+        @media print { body { margin: 20px; } }
     </style>
 </head>
 <body>
     <h1>${title}</h1>
-    
     <div class="meta">
-        <div class="meta-item"><strong>Version:</strong> ${version}</div>
-        <div class="meta-item"><strong>Status:</strong> ${status}</div>
-        <div class="meta-item"><strong>Type:</strong> ${type}</div>
-        <div class="meta-item"><strong>Author:</strong> ${author}</div>
-        <div class="meta-item"><strong>Generated:</strong> ${new Date().toLocaleString()}</div>
+        <p><strong>Version:</strong> ${version}</p>
+        <p><strong>Status:</strong> ${status}</p>
+        <p><strong>Type:</strong> ${type}</p>
+        <p><strong>Author:</strong> ${author}</p>
     </div>
-    
     <h2>Description</h2>
     <p>${description}</p>
-    
-    <h2>Policy Content</h2>
+    <h2>Content</h2>
     <div class="content">${content}</div>
-    
-    <p class="no-print" style="margin-top: 40px; text-align: center; color: #6b7280; font-size: 14px;">
-        Use your browser's Print function (Ctrl+P or Cmd+P) and select "Save as PDF" to download this policy.
-    </p>
 </body>
 </html>`;
 
-      console.log('Opening new window for PDF...');
-      
-      // Open in new window
       const newWindow = window.open('', '_blank');
-      
       if (!newWindow) {
-        throw new Error('Unable to open new window. Please allow pop-ups for this site.');
+        throw new Error('Please allow pop-ups to download PDF');
       }
 
-      // Write the HTML content
       newWindow.document.write(htmlContent);
       newWindow.document.close();
-      
-      // Focus the window
       newWindow.focus();
-      
-      console.log('PDF window opened successfully');
       
       toast({
         title: "PDF Ready",
-        description: "A new window has opened with your policy. Use Ctrl+P (or Cmd+P on Mac) and select 'Save as PDF' to download.",
+        description: "Use Ctrl+P (Cmd+P on Mac) and select 'Save as PDF'",
       });
       
     } catch (error) {
-      console.error('PDF Generation Error:', error);
-      
+      console.error('PDF Error:', error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to generate PDF. Please try again.",
+        description: "Failed to generate PDF",
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
-  }, [toast]);
+  }, [toast, policies]);
 
   return {
     // Data
