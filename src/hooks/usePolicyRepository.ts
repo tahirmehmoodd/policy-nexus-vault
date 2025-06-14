@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { usePolicies, type DatabasePolicy } from './usePolicies';
 import { useToast } from '@/components/ui/use-toast';
@@ -127,6 +126,7 @@ export function usePolicyRepository() {
 
   const transformedPolicies = policies.map(policy => ({
     policy_id: policy.id,
+    id: policy.id,
     title: policy.title,
     description: policy.description || "",
     type: policy.type,
@@ -141,7 +141,7 @@ export function usePolicyRepository() {
     framework_category: policy.category === 'Technical Control' ? 'technical' : 
                        policy.category === 'Physical Control' ? 'physical' : 
                        policy.category === 'Organizational Control' ? 'organizational' :
-                       'organizational', // fallback for Organizational Control
+                       'organizational',
     security_domain: policy.type,
   }));
 
@@ -149,37 +149,37 @@ export function usePolicyRepository() {
     try {
       setIsLoading(true);
       
-      console.log('Starting PDF generation for policy:', policy.title);
-      console.log('Policy data:', policy);
+      console.log('=== PDF DEBUG START ===');
+      console.log('Policy object received:', policy);
+      console.log('Policy keys:', Object.keys(policy));
+      console.log('Policy title:', policy.title);
+      console.log('Policy content length:', policy.content?.length || 0);
+      console.log('Policy content preview:', policy.content?.substring(0, 100));
       
-      // Ensure we have the required data
+      // Extract data with better fallbacks
       const title = policy.title || 'Untitled Policy';
-      const description = policy.description || 'No description available';
+      const description = policy.description || '';
       const content = policy.content || 'No content available';
       const version = 'currentVersion' in policy ? policy.currentVersion : policy.version?.toString() || '1.0';
       const status = policy.status || 'draft';
       const author = policy.author || 'Unknown';
       const type = policy.type || 'General';
       const tags = policy.tags || [];
-      const createdDate = new Date(policy.created_at).toLocaleDateString();
-      const updatedDate = new Date(policy.updated_at).toLocaleDateString();
+      const policyId = 'policy_id' in policy ? policy.policy_id : policy.id;
       
-      // Determine category
-      let category = 'organizational';
-      if ('framework_category' in policy) {
-        category = policy.framework_category;
-      } else if (policy.category) {
-        category = policy.category === 'Technical Control' ? 'technical' : 
-                  policy.category === 'Physical Control' ? 'physical' : 
-                  policy.category === 'Organizational Control' ? 'organizational' : 'organizational';
-      }
-      
-      console.log('Processed data for PDF:', {
-        title, description, content: content.substring(0, 100) + '...', 
-        version, status, author, type, category, tags
+      console.log('Extracted data:', {
+        title,
+        description: description.substring(0, 50),
+        content: content.substring(0, 50),
+        version,
+        status,
+        author,
+        type,
+        policyId,
+        tagsCount: tags.length
       });
-      
-      // Create HTML content for PDF
+
+      // Create a simple, working HTML structure
       const htmlContent = `
         <!DOCTYPE html>
         <html>
@@ -190,195 +190,105 @@ export function usePolicyRepository() {
             body { 
               font-family: Arial, sans-serif; 
               line-height: 1.6; 
+              margin: 20px; 
               color: #333; 
-              max-width: 800px; 
-              margin: 0 auto; 
-              padding: 20px; 
             }
             .header { 
               text-align: center; 
-              margin-bottom: 40px; 
-              border-bottom: 3px solid #333; 
+              border-bottom: 2px solid #333; 
               padding-bottom: 20px; 
+              margin-bottom: 30px; 
             }
-            .header h1 { 
-              color: #333; 
-              margin: 0; 
-              font-size: 24px; 
-            }
-            .header .subtitle { 
-              color: #666; 
-              margin: 10px 0; 
-              font-size: 14px; 
-            }
-            .info-table { 
-              width: 100%; 
-              border-collapse: collapse; 
+            .content { 
               margin: 20px 0; 
-            }
-            .info-table td { 
-              padding: 8px 12px; 
-              border: 1px solid #ddd; 
-            }
-            .info-table .label { 
-              background-color: #f5f5f5; 
-              font-weight: bold; 
-              width: 25%; 
-            }
-            .section { 
-              margin: 30px 0; 
-            }
-            .section h2 { 
-              color: #444; 
-              border-bottom: 2px solid #ddd; 
-              padding-bottom: 10px; 
-              font-size: 18px; 
-            }
-            .content-box { 
-              background: #f9f9f9; 
-              padding: 20px; 
-              border-left: 4px solid #2196f3; 
-              margin: 15px 0; 
               white-space: pre-wrap; 
-              word-wrap: break-word; 
             }
-            .tags { 
+            .info-row { 
               margin: 10px 0; 
             }
-            .tag { 
-              background: #e3f2fd; 
-              padding: 4px 8px; 
-              border-radius: 4px; 
-              margin-right: 5px; 
-              font-size: 12px; 
-              display: inline-block; 
-            }
-            .footer { 
-              margin-top: 40px; 
-              padding-top: 20px; 
-              border-top: 1px solid #ddd; 
-              font-size: 12px; 
-              color: #666; 
-              text-align: center; 
+            .label { 
+              font-weight: bold; 
             }
           </style>
         </head>
         <body>
           <div class="header">
             <h1>${title}</h1>
-            <div class="subtitle">Security Policy Document - Version ${version}</div>
-            <div class="subtitle">Status: ${status.toUpperCase()}</div>
+            <p>Version ${version} - ${status.toUpperCase()}</p>
           </div>
           
-          <div class="section">
-            <h2>Policy Information</h2>
-            <table class="info-table">
-              <tr>
-                <td class="label">Policy ID</td>
-                <td>${'policy_id' in policy ? policy.policy_id : policy.id}</td>
-              </tr>
-              <tr>
-                <td class="label">Title</td>
-                <td>${title}</td>
-              </tr>
-              <tr>
-                <td class="label">Type</td>
-                <td>${type}</td>
-              </tr>
-              <tr>
-                <td class="label">Category</td>
-                <td>${category}</td>
-              </tr>
-              <tr>
-                <td class="label">Status</td>
-                <td>${status}</td>
-              </tr>
-              <tr>
-                <td class="label">Version</td>
-                <td>${version}</td>
-              </tr>
-              <tr>
-                <td class="label">Author</td>
-                <td>${author}</td>
-              </tr>
-              <tr>
-                <td class="label">Created</td>
-                <td>${createdDate}</td>
-              </tr>
-              <tr>
-                <td class="label">Last Updated</td>
-                <td>${updatedDate}</td>
-              </tr>
-            </table>
+          <div class="info-row">
+            <span class="label">Policy ID:</span> ${policyId}
+          </div>
+          <div class="info-row">
+            <span class="label">Author:</span> ${author}
+          </div>
+          <div class="info-row">
+            <span class="label">Type:</span> ${type}
           </div>
           
-          ${description && description !== 'No description available' ? `
-          <div class="section">
-            <h2>Description</h2>
-            <div class="content-box">${description}</div>
+          ${description ? `
+          <div class="info-row">
+            <span class="label">Description:</span>
+            <div>${description}</div>
           </div>
           ` : ''}
           
-          <div class="section">
-            <h2>Policy Content</h2>
-            <div class="content-box">${content}</div>
+          <div class="info-row">
+            <span class="label">Content:</span>
+            <div class="content">${content}</div>
           </div>
           
-          ${tags && tags.length > 0 ? `
-          <div class="section">
-            <h2>Tags</h2>
-            <div class="tags">
-              ${tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
-            </div>
+          ${tags.length > 0 ? `
+          <div class="info-row">
+            <span class="label">Tags:</span> ${tags.join(', ')}
           </div>
           ` : ''}
-          
-          <div class="footer">
-            <div>Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</div>
-            <div>Information Security Policy Repository</div>
-          </div>
         </body>
         </html>
       `;
 
       console.log('HTML content created, length:', htmlContent.length);
+      console.log('HTML preview:', htmlContent.substring(0, 500));
 
       const filename = `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_v${version}.pdf`;
       
+      console.log('Starting PDF generation with filename:', filename);
+      
       const options = {
-        margin: [15, 15, 15, 15],
+        margin: 10,
         filename: filename,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { 
-          scale: 1.5,
-          useCORS: true,
-          letterRendering: true,
-          allowTaint: false
+          scale: 1,
+          logging: true,
+          useCORS: true
         },
         jsPDF: { 
           unit: 'mm', 
           format: 'a4', 
-          orientation: 'portrait',
-          putOnlyUsedFonts: true,
-          floatPrecision: 16
+          orientation: 'portrait'
         }
       };
-
-      console.log('Starting PDF generation with options:', options);
 
       await html2pdf().set(options).from(htmlContent).save();
       
       console.log('PDF generation completed successfully');
+      console.log('=== PDF DEBUG END ===');
       
       toast({
         title: "Success",
         description: `Policy "${title}" downloaded as PDF successfully`,
       });
     } catch (error) {
-      console.error('Error generating PDF:', error);
+      console.error('=== PDF ERROR ===');
+      console.error('Error details:', error);
+      console.error('Error stack:', error.stack);
+      console.error('=== PDF ERROR END ===');
+      
       toast({
         title: "Error",
-        description: "Failed to generate PDF. Please try again.",
+        description: "Failed to generate PDF. Check console for details.",
         variant: "destructive",
       });
     } finally {
