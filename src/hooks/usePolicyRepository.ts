@@ -18,6 +18,24 @@ export interface SearchFilters {
   status: string;
 }
 
+export interface PolicyData {
+  policy_id: string;
+  id: string;
+  title: string;
+  description: string;
+  type: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  author: string;
+  content: string;
+  currentVersion: string;
+  tags: string[];
+  versions: any[];
+  framework_category: string;
+  security_domain: string;
+}
+
 export function usePolicyRepository() {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -121,7 +139,7 @@ export function usePolicyRepository() {
     versions: [],
     framework_category: policy.category === 'Technical Control' ? 'technical' : 
                        policy.category === 'Physical Control' ? 'physical' : 
-                       policy.category === 'Administrative Control' ? 'organizational' :
+                       policy.category === 'Organizational Control' ? 'organizational' :
                        'organizational', // fallback for Organizational Control
     security_domain: policy.type,
   }));
