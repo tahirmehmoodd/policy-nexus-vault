@@ -1,10 +1,11 @@
+
 import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { PolicyList } from "@/components/PolicyList";
 import { PolicyDetail } from "@/components/PolicyDetail";
 import { CreatePolicyModal } from "@/components/CreatePolicyModal";
 import { EditPolicyModal } from "@/components/EditPolicyModal";
-import { XmlImportModal } from "@/components/XmlImportModal";
+import { JsonImportModal } from "@/components/JsonImportModal";
 import { PolicyTemplatesModal } from "@/components/PolicyTemplatesModal";
 import { TagManagement } from "@/components/TagManagement";
 import { EnhancedSearchFilters, SearchFilters } from "@/components/EnhancedSearchFilters";
@@ -131,7 +132,7 @@ export default function Index() {
   const [selectedPolicy, setSelectedPolicy] = useState(null);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [xmlImportOpen, setXmlImportOpen] = useState(false);
+  const [jsonImportOpen, setJsonImportOpen] = useState(false);
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const [tagManagementOpen, setTagManagementOpen] = useState(false);
   const [versionHistoryOpen, setVersionHistoryOpen] = useState(false);
@@ -381,9 +382,9 @@ export default function Index() {
                     <BookOpen className="h-4 w-4 mr-2" />
                     Templates
                   </Button>
-                  <Button variant="outline" onClick={() => setXmlImportOpen(true)}>
+                  <Button variant="outline" onClick={() => setJsonImportOpen(true)}>
                     <Upload className="h-4 w-4 mr-2" />
-                    Import XML
+                    Import JSON
                   </Button>
                   <Button onClick={() => {
                     setEditModalOpen(false); // Ensure edit modal is closed
@@ -521,9 +522,9 @@ export default function Index() {
         policy={selectedPolicy}
       />
 
-      <XmlImportModal
-        open={xmlImportOpen}
-        onOpenChange={setXmlImportOpen}
+      <JsonImportModal
+        open={jsonImportOpen}
+        onOpenChange={setJsonImportOpen}
       />
 
       <PolicyTemplatesModal
