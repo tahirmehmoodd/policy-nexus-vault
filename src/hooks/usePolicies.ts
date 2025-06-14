@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
@@ -460,48 +459,6 @@ export function usePolicies() {
     linkElement.click();
   };
 
-  const convertXmlToPolicy = (xmlContent: string) => {
-    try {
-      const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(xmlContent, "text/xml");
-      
-      const title = xmlDoc.getElementsByTagName("title")[0]?.textContent || "Untitled Policy";
-      const description = xmlDoc.getElementsByTagName("description")[0]?.textContent || "";
-      const type = xmlDoc.getElementsByTagName("type")[0]?.textContent || "Information Security";
-      const content = xmlDoc.getElementsByTagName("content")[0]?.textContent || xmlContent;
-      const tagsElements = xmlDoc.getElementsByTagName("tag");
-      
-      const tags: string[] = [];
-      for (let i = 0; i < tagsElements.length; i++) {
-        const tag = tagsElements[i].textContent;
-        if (tag) tags.push(tag);
-      }
-      
-      return {
-        title,
-        description,
-        type,
-        content,
-        tags,
-      };
-    } catch (error) {
-      console.error("Error parsing XML:", error);
-      toast({
-        title: "XML Parse Error",
-        description: "Could not parse the XML file. Using raw content instead.",
-        variant: "destructive",
-      });
-      
-      return {
-        title: "Imported XML Policy",
-        description: "Policy imported from XML file",
-        type: "Information Security",
-        content: xmlContent,
-        tags: ["XML Import"],
-      };
-    }
-  };
-
   return {
     policies,
     loading,
@@ -512,7 +469,6 @@ export function usePolicies() {
     getPolicyVersions,
     getAllTags,
     downloadPolicyAsJson,
-    convertXmlToPolicy,
     refreshPolicies: fetchPolicies,
   };
 }

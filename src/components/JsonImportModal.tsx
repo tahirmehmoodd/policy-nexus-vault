@@ -10,40 +10,54 @@ import { AlertCircle, Upload } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
-interface XmlImportModalProps {
+interface JsonImportModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export function XmlImportModal({ open, onOpenChange }: XmlImportModalProps) {
+export function JsonImportModal({ open, onOpenChange }: JsonImportModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [xmlContent, setXmlContent] = useState('');
+  const [jsonContent, setJsonContent] = useState('');
   const [parsedPolicy, setParsedPolicy] = useState<any>(null);
   
-  const { createPolicy, convertXmlToPolicy } = usePolicies();
+  const { createPolicy } = usePolicies();
   const { toast } = useToast();
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    if (!file.name.toLowerCase().endsWith('.xml')) {
-      setError('Please select an XML file');
+    if (!file.name.toLowerCase().endsWith('.json')) {
+      setError('Please select a JSON file');
       return;
     }
 
     const reader = new FileReader();
     reader.onload = (e) => {
       const content = e.target?.result as string;
-      setXmlContent(content);
+      setJsonContent(content);
       
       try {
-        const parsed = convertXmlToPolicy(content);
-        setParsedPolicy(parsed);
+        const parsed = JSON.parse(content);
+        
+        // Validate required fields
+        if (!parsed.title || !parsed.content) {
+          setError('JSON must contain at least "title" and "content" fields');
+          return;
+        }
+        
+        setParsedPolicy({
+          title: parsed.title,
+          description: parsed.description || '',
+          content: parsed.content,
+          type: parsed.type || 'Information Security',
+          tags: Array.isArray(parsed.tags) ? parsed.tags : [],
+        });
         setError(null);
       } catch (error) {
-        setError('Failed to parse XML file');
+        setError('Invalid JSON format');
+        setParsedPolicy(null);
       }
     };
     reader.readAsText(file);
@@ -65,7 +79,7 @@ export function XmlImportModal({ open, onOpenChange }: XmlImportModalProps) {
 
       toast({
         title: "Success",
-        description: "XML policy imported successfully",
+        description: "JSON policy imported successfully",
       });
 
       onOpenChange(false);
@@ -79,7 +93,7 @@ export function XmlImportModal({ open, onOpenChange }: XmlImportModalProps) {
   };
 
   const resetForm = () => {
-    setXmlContent('');
+    setJsonContent('');
     setParsedPolicy(null);
     setError(null);
   };
@@ -95,7 +109,7 @@ export function XmlImportModal({ open, onOpenChange }: XmlImportModalProps) {
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Import Policy from XML</DialogTitle>
+          <DialogTitle>Import Policy from JSON</DialogTitle>
         </DialogHeader>
         
         {error && (
@@ -107,21 +121,21 @@ export function XmlImportModal({ open, onOpenChange }: XmlImportModalProps) {
         
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="xml-file">Select XML File</Label>
+            <Label htmlFor="json-file">Select JSON File</Label>
             <Input
-              id="xml-file"
+              id="json-file"
               type="file"
-              accept=".xml"
+              accept=".json"
               onChange={handleFileUpload}
             />
           </div>
 
-          {xmlContent && (
+          {jsonContent && (
             <div className="space-y-2">
-              <Label>XML Content Preview</Label>
+              <Label>JSON Content Preview</Label>
               <Textarea
-                value={xmlContent}
-                onChange={(e) => setXmlContent(e.target.value)}
+                value={jsonContent}
+                onChange={(e) => setJsonContent(e.target.value)}
                 rows={6}
                 className="font-mono text-sm"
               />
