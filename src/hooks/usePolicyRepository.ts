@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { usePolicies, type DatabasePolicy } from './usePolicies';
 import { useToast } from '@/components/ui/use-toast';
@@ -150,144 +149,81 @@ export function usePolicyRepository() {
     try {
       setIsLoading(true);
       
-      console.log('=== PDF GENERATION DEBUG ===');
-      console.log('Raw policy object:', policy);
+      console.log('=== PDF GENERATION START ===');
+      console.log('Policy object:', policy);
       
-      // Extract content with better error handling
-      let content = '';
-      if ('content' in policy && policy.content) {
-        content = policy.content;
-      } else if ('content' in policy && !policy.content) {
-        content = 'No content available for this policy.';
-      } else {
-        content = 'Content not found.';
-      }
-      
-      console.log('Extracted content length:', content.length);
-      console.log('Content preview:', content.substring(0, 200));
-      
+      // Extract data safely
       const title = policy.title || 'Untitled Policy';
       const description = policy.description || 'No description available';
+      const content = ('content' in policy ? policy.content : '') || 'No content available';
       const version = 'currentVersion' in policy ? policy.currentVersion : policy.version?.toString() || '1.0';
       const status = policy.status || 'draft';
       const author = policy.author || 'Unknown Author';
       const type = policy.type || 'General';
-      const policyId = 'policy_id' in policy ? policy.policy_id : policy.id;
       
-      console.log('PDF Data:', { title, version, status, author, type, policyId });
+      console.log('Extracted data:', { title, content: content.substring(0, 100) + '...' });
       
-      // Create simplified HTML with inline styles
+      // Create very simple HTML without complex styling
       const htmlContent = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>${title}</title>
-  <style>
-    * { box-sizing: border-box; }
-    body { 
-      font-family: Arial, sans-serif; 
-      line-height: 1.5; 
-      margin: 20px; 
-      color: #000;
-      background: white;
-    }
-    .header { 
-      text-align: center; 
-      border-bottom: 2px solid #000; 
-      padding-bottom: 15px; 
-      margin-bottom: 20px; 
-    }
-    .title { 
-      font-size: 24px; 
-      font-weight: bold; 
-      margin: 0 0 10px 0; 
-    }
-    .subtitle { 
-      font-size: 14px; 
-      color: #666; 
-      margin: 0; 
-    }
-    .info { 
-      margin: 15px 0; 
-      font-size: 12px; 
-    }
-    .label { 
-      font-weight: bold; 
-      display: inline-block; 
-      width: 100px; 
-    }
-    .content-section { 
-      margin-top: 20px; 
-      padding: 15px; 
-      border: 1px solid #ddd; 
-      background: #f9f9f9; 
-    }
-    .content-title { 
-      font-weight: bold; 
-      font-size: 16px; 
-      margin-bottom: 10px; 
-    }
-    .content-text { 
-      white-space: pre-wrap; 
-      font-size: 12px; 
-      line-height: 1.4; 
-    }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <h1 class="title">${title}</h1>
-    <p class="subtitle">Version ${version} - ${status.toUpperCase()}</p>
-  </div>
-  
-  <div class="info">
-    <div><span class="label">Policy ID:</span> ${policyId}</div>
-    <div><span class="label">Author:</span> ${author}</div>
-    <div><span class="label">Type:</span> ${type}</div>
-    <div><span class="label">Description:</span> ${description}</div>
-  </div>
-  
-  <div class="content-section">
-    <div class="content-title">Policy Content</div>
-    <div class="content-text">${content}</div>
-  </div>
-</body>
-</html>`;
-
-      console.log('Generated HTML length:', htmlContent.length);
+        <html>
+          <head>
+            <meta charset="UTF-8">
+            <style>
+              body { font-family: Arial; margin: 20px; }
+              h1 { color: #000; }
+              .info { margin: 10px 0; }
+              .content { margin-top: 20px; padding: 10px; border: 1px solid #ccc; }
+            </style>
+          </head>
+          <body>
+            <h1>${title}</h1>
+            <div class="info">Version: ${version}</div>
+            <div class="info">Status: ${status}</div>
+            <div class="info">Author: ${author}</div>
+            <div class="info">Type: ${type}</div>
+            <div class="info">Description: ${description}</div>
+            <div class="content">
+              <h2>Content</h2>
+              <p>${content.replace(/\n/g, '<br>')}</p>
+            </div>
+          </body>
+        </html>
+      `;
       
-      const filename = `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_v${version}.pdf`;
+      console.log('HTML generated, length:', htmlContent.length);
       
-      console.log('Starting PDF generation...');
+      // Use simpler options
+      const element = document.createElement('div');
+      element.innerHTML = htmlContent;
       
-      const options = {
-        margin: [10, 10, 10, 10],
-        filename: filename,
+      const opt = {
+        margin: 1,
+        filename: `${title.replace(/[^a-z0-9]/gi, '_')}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { 
-          scale: 1,
-          useCORS: true,
-          allowTaint: true,
-          backgroundColor: '#ffffff'
-        },
-        jsPDF: { 
-          unit: 'mm', 
-          format: 'a4', 
-          orientation: 'portrait'
-        }
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
       };
-
-      await html2pdf().set(options).from(htmlContent).save();
       
-      console.log('PDF generated successfully');
+      console.log('Starting PDF generation with options:', opt);
+      
+      // Generate PDF
+      await html2pdf().set(opt).from(element).save();
+      
+      console.log('PDF generation completed successfully');
       
       toast({
         title: "Success",
-        description: `Policy "${title}" downloaded as PDF successfully`,
+        description: `Policy "${title}" downloaded as PDF`,
       });
+      
     } catch (error) {
       console.error('PDF Generation Error:', error);
+      console.error('Error details:', {
+        message: error?.message,
+        stack: error?.stack,
+        name: error?.name
+      });
+      
       toast({
         title: "Error",
         description: "Failed to generate PDF. Please try again.",
