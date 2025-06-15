@@ -175,12 +175,12 @@ export function EnhancedSearchFilters({ onSearch, availableTags, loading }: Sear
               {/* Policy Type Filter */}
               <div className="space-y-2">
                 <label className="text-sm font-medium">Policy Type</label>
-                <Select value={filters.type} onValueChange={(value) => setFilters({...filters, type: value})}>
+                <Select value={filters.type} onValueChange={(value) => setFilters({...filters, type: value === 'all-types' ? '' : value})}>
                   <SelectTrigger>
                     <SelectValue placeholder="All types" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All types</SelectItem>
+                    <SelectItem value="all-types">All types</SelectItem>
                     {POLICY_TYPES.map(type => (
                       <SelectItem key={type} value={type}>{type}</SelectItem>
                     ))}
@@ -191,12 +191,12 @@ export function EnhancedSearchFilters({ onSearch, availableTags, loading }: Sear
               {/* Status Filter */}
               <div className="space-y-2">
                 <label className="text-sm font-medium">Status</label>
-                <Select value={filters.status} onValueChange={(value) => setFilters({...filters, status: value})}>
+                <Select value={filters.status} onValueChange={(value) => setFilters({...filters, status: value === 'all-statuses' ? '' : value})}>
                   <SelectTrigger>
                     <SelectValue placeholder="All statuses" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All statuses</SelectItem>
+                    <SelectItem value="all-statuses">All statuses</SelectItem>
                     {POLICY_STATUS.map(status => (
                       <SelectItem key={status} value={status}>
                         {status.charAt(0).toUpperCase() + status.slice(1)}
@@ -209,12 +209,12 @@ export function EnhancedSearchFilters({ onSearch, availableTags, loading }: Sear
               {/* Category Filter */}
               <div className="space-y-2">
                 <label className="text-sm font-medium">Control Category</label>
-                <Select value={filters.category} onValueChange={(value) => setFilters({...filters, category: value})}>
+                <Select value={filters.category} onValueChange={(value) => setFilters({...filters, category: value === 'all-categories' ? '' : value})}>
                   <SelectTrigger>
                     <SelectValue placeholder="All categories" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All categories</SelectItem>
+                    <SelectItem value="all-categories">All categories</SelectItem>
                     {POLICY_CATEGORIES.map(category => (
                       <SelectItem key={category} value={category}>{category}</SelectItem>
                     ))}
