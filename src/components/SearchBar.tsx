@@ -19,7 +19,15 @@ interface SearchBarProps {
 
 export function SearchBar({ onSearch, onFilterChange }: SearchBarProps) {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('SearchBar - Input change:', e.target.value);
     onSearch(e.target.value);
+  };
+
+  const handleFilterClick = (filter: string) => {
+    console.log('SearchBar - Filter clicked:', filter);
+    if (onFilterChange) {
+      onFilterChange(filter);
+    }
   };
 
   return (
@@ -43,22 +51,22 @@ export function SearchBar({ onSearch, onFilterChange }: SearchBarProps) {
             <DropdownMenuLabel>Filter By</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem onClick={() => onFilterChange("all")}>
+              <DropdownMenuItem onClick={() => handleFilterClick("all")}>
                 All Policies
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onFilterChange("access")}>
+              <DropdownMenuItem onClick={() => handleFilterClick("access")}>
                 Access Control
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onFilterChange("data")}>
+              <DropdownMenuItem onClick={() => handleFilterClick("data")}>
                 Data Classification
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onFilterChange("network")}>
+              <DropdownMenuItem onClick={() => handleFilterClick("network")}>
                 Network Security
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onFilterChange("user")}>
+              <DropdownMenuItem onClick={() => handleFilterClick("user")}>
                 User Account
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onFilterChange("incident")}>
+              <DropdownMenuItem onClick={() => handleFilterClick("incident")}>
                 Incident Handling
               </DropdownMenuItem>
             </DropdownMenuGroup>
