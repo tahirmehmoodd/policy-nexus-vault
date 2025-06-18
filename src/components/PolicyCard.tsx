@@ -16,6 +16,7 @@ import {
   Trash2Icon
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { usePolicies } from "@/hooks/usePolicies";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,6 +40,9 @@ interface PolicyCardProps {
 
 export function PolicyCard({ policy, onClick, onEdit, onDownload, onDelete, viewMode = 'grid' }: PolicyCardProps) {
   const { toast } = useToast();
+  const { deletePolicy } = usePolicies();
+
+  console.log('PolicyCard rendered with onDelete:', !!onDelete);
 
   const handleDownloadJSON = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -157,13 +161,20 @@ export function PolicyCard({ policy, onClick, onEdit, onDownload, onDelete, view
     });
   };
 
-  const handleDelete = () => {
-    if (onDelete) {
-      onDelete(policy);
-    } else {
+  const handleDelete = async () => {
+    try {
+      // Use the database hook directly to delete the policy
+      await deletePolicy(policy.policy_id || policy.id);
+      
+      toast({
+        title: "Success",
+        description: `Policy "${policy.title}" has been deleted successfully.`,
+      });
+    } catch (error) {
+      console.error('Error deleting policy:', error);
       toast({
         title: "Error",
-        description: "Delete functionality not available",
+        description: "Failed to delete policy. Please try again.",
         variant: "destructive",
       });
     }
@@ -266,13 +277,13 @@ export function PolicyCard({ policy, onClick, onEdit, onDownload, onDelete, view
                   <AlertDialogHeader>
                     <AlertDialogTitle>Delete Policy</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Are you sure you want to delete "{policy.title}"? This action cannot be undone.
+                      Are you sure you want to delete "{policy.title}"? This action cannot be undone and will permanently remove the policy from the database.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
                     <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                      Delete
+                      Delete Policy
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
@@ -397,13 +408,13 @@ export function PolicyCard({ policy, onClick, onEdit, onDownload, onDelete, view
               <AlertDialogHeader>
                 <AlertDialogTitle>Delete Policy</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Are you sure you want to delete "{policy.title}"? This action cannot be undone.
+                  Are you sure you want to delete "{policy.title}"? This action cannot be undone and will permanently remove the policy from the database.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                 <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                  Delete
+                  Delete Policy
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
