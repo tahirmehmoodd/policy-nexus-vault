@@ -164,7 +164,7 @@ export function PolicyCard({ policy, onClick, onEdit, onDownload, onDelete, view
   const handleDelete = async () => {
     try {
       // Use the database hook directly to delete the policy
-      await deletePolicy(policy.policy_id || policy.id);
+      await deletePolicy(policy.policy_id);
       
       toast({
         title: "Success",
