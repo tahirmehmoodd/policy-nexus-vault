@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,9 @@ interface PolicyCardProps {
 
 export function PolicyCard({ policy, onClick, onEdit, onDownload, onDelete, viewMode = 'grid' }: PolicyCardProps) {
   const { toast } = useToast();
+
+  // Debug logging
+  console.log('PolicyCard rendered with onDelete:', !!onDelete);
 
   const handleDownloadJSON = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -159,6 +163,7 @@ export function PolicyCard({ policy, onClick, onEdit, onDownload, onDelete, view
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
+    console.log('Delete button clicked for policy:', policy.title);
     if (onDelete) {
       onDelete(policy);
     }
@@ -249,7 +254,12 @@ export function PolicyCard({ policy, onClick, onEdit, onDownload, onDelete, view
               {onDelete && (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button variant="outline" size="sm" onClick={(e) => e.stopPropagation()}>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
                       <Trash2Icon className="h-4 w-4" />
                     </Button>
                   </AlertDialogTrigger>
@@ -377,7 +387,12 @@ export function PolicyCard({ policy, onClick, onEdit, onDownload, onDelete, view
           {onDelete && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="outline" size="sm" onClick={(e) => e.stopPropagation()}>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
                   <Trash2Icon className="h-4 w-4" />
                 </Button>
               </AlertDialogTrigger>
