@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -41,7 +40,7 @@ export function VersionHistoryModal({ open, onOpenChange, policy }: VersionHisto
     
     setLoading(true);
     try {
-      const versionData = await getPolicyVersions(policy.id);
+      const versionData = await getPolicyVersions(policy.policy_id);
       setVersions(versionData);
       if (versionData.length > 0) {
         setSelectedVersion(versionData[0]); // Select latest version by default
