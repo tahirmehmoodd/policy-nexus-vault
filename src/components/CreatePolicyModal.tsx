@@ -28,6 +28,8 @@ export function CreatePolicyModal({ open, onOpenChange }: CreatePolicyModalProps
     status: 'draft' as 'draft' | 'active' | 'archived',
     tags: [] as string[],
     newTag: '',
+    owner: '',
+    department: '',
   });
   const [file, setFile] = useState<File | null>(null);
   
@@ -66,6 +68,8 @@ export function CreatePolicyModal({ open, onOpenChange }: CreatePolicyModalProps
         type: formData.type,
         tags: formData.tags,
         status: formData.status,
+        owner: formData.owner.trim() || undefined,
+        department: formData.department.trim() || undefined,
       });
 
       console.log('Policy created successfully:', policy);
@@ -115,6 +119,8 @@ export function CreatePolicyModal({ open, onOpenChange }: CreatePolicyModalProps
       status: 'draft',
       tags: [],
       newTag: '',
+      owner: '',
+      department: '',
     });
     setFile(null);
     setError(null);
@@ -216,6 +222,30 @@ export function CreatePolicyModal({ open, onOpenChange }: CreatePolicyModalProps
             </Select>
           </div>
 
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="owner">Policy Owner</Label>
+              <Input
+                id="owner"
+                value={formData.owner}
+                onChange={(e) => setFormData({ ...formData, owner: e.target.value })}
+                placeholder="e.g., John Doe"
+              />
+              <p className="text-xs text-muted-foreground">Person responsible for this policy</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="department">Department</Label>
+              <Input
+                id="department"
+                value={formData.department}
+                onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                placeholder="e.g., IT Security"
+              />
+              <p className="text-xs text-muted-foreground">Department managing this policy</p>
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="content">Content *</Label>
             <Textarea
@@ -224,8 +254,11 @@ export function CreatePolicyModal({ open, onOpenChange }: CreatePolicyModalProps
               onChange={(e) => setFormData({ ...formData, content: e.target.value })}
               rows={6}
               required
-              placeholder="Enter policy content"
+              placeholder="Enter policy content. Use headings (# Heading or 1. Heading) to create sections that will be auto-detected."
             />
+            <p className="text-xs text-muted-foreground">
+              Tip: Use headings to structure your content into sections. Sections will be automatically detected and tagged with compliance frameworks.
+            </p>
           </div>
 
           <div className="space-y-2">

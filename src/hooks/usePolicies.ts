@@ -77,6 +77,8 @@ export function usePolicies() {
     type: string;
     tags?: string[];
     status?: 'draft' | 'active' | 'archived';
+    owner?: string;
+    department?: string;
   }) => {
     try {
       console.log('Starting policy creation with data:', policyData);
@@ -112,6 +114,8 @@ export function usePolicies() {
         created_by: user.id,
         updated_by: user.id,
         author: user.email || 'Unknown',
+        owner: policyData.owner || user.email || 'Unknown',
+        department: policyData.department || null,
       };
 
       console.log('Insert data prepared:', insertData);
@@ -159,6 +163,52 @@ export function usePolicies() {
         } catch (tagError) {
           console.error('Error handling tags:', tagError);
         }
+      }
+
+      // Create policy sections (Week 3 feature)
+      try {
+        const { splitPolicyIntoSections } = await import('@/utils/sectionSplitter');
+        const sections = splitPolicyIntoSections(policyData.content);
+        
+        if (sections.length > 0) {
+          // Fetch compliance frameworks for auto-tagging
+          const { data: frameworks } = await supabase
+            .from('compliance_frameworks')
+            .select('*');
+          
+          const sectionsToInsert = await Promise.all(
+            sections.map(async (section) => {
+              const tags: string[] = [];
+              const contentLower = section.section_content.toLowerCase();
+              
+              if (frameworks) {
+                for (const framework of frameworks) {
+                  const { framework_name, control_id, keywords } = framework;
+                  if (keywords && keywords.some((keyword: string) => contentLower.includes(keyword.toLowerCase()))) {
+                    tags.push(`${framework_name}-${control_id}`);
+                  }
+                }
+              }
+              
+              return {
+                policy_id: data.id,
+                section_number: section.section_number,
+                section_title: section.section_title,
+                section_content: section.section_content,
+                compliance_tags: tags
+              };
+            })
+          );
+          
+          await supabase
+            .from('policy_sections')
+            .insert(sectionsToInsert);
+          
+          console.log(`Created ${sectionsToInsert.length} sections for policy ${data.id}`);
+        }
+      } catch (sectionError) {
+        console.error('Error creating policy sections:', sectionError);
+        // Don't fail the whole operation if sections fail
       }
 
       await fetchPolicies();

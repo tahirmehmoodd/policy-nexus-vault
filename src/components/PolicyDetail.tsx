@@ -1,10 +1,11 @@
-
-import React from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PolicySectionsView } from "@/components/PolicySectionsView";
 import { 
   FileTextIcon, 
   CalendarIcon, 
@@ -15,7 +16,9 @@ import {
   HistoryIcon,
   X,
   ShieldIcon,
-  FileIcon
+  FileIcon,
+  BuildingIcon,
+  LayersIcon
 } from "lucide-react";
 
 interface PolicyDetailProps {
@@ -120,6 +123,16 @@ export function PolicyDetail({
                   <span className="text-muted-foreground">{policy.author}</span>
                 </div>
                 <div className="flex items-center gap-2">
+                  <UserIcon className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium">Owner:</span>
+                  <span className="text-muted-foreground">{policy.owner || 'Not specified'}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <BuildingIcon className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium">Department:</span>
+                  <span className="text-muted-foreground">{policy.department || 'Not specified'}</span>
+                </div>
+                <div className="flex items-center gap-2">
                   <FileTextIcon className="h-4 w-4 text-muted-foreground" />
                   <span className="font-medium">Type:</span>
                   <span className="text-muted-foreground">{policy.type}</span>
@@ -178,19 +191,35 @@ export function PolicyDetail({
             </Card>
           )}
 
-          {/* Policy Content */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">Policy Content</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-64 rounded border p-3">
-                <pre className="text-xs whitespace-pre-wrap leading-relaxed">
-                  {policy.content}
-                </pre>
-              </ScrollArea>
-            </CardContent>
-          </Card>
+          {/* Policy Content with Sections */}
+          <Tabs defaultValue="content" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="content">Content</TabsTrigger>
+              <TabsTrigger value="sections">
+                <LayersIcon className="h-4 w-4 mr-2" />
+                Sections
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="content">
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium">Policy Content</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea className="h-64 rounded border p-3">
+                    <pre className="text-xs whitespace-pre-wrap leading-relaxed">
+                      {policy.content}
+                    </pre>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="sections">
+              <PolicySectionsView policyId={policy.policy_id} />
+            </TabsContent>
+          </Tabs>
 
           {/* Version Information */}
           <Card>
