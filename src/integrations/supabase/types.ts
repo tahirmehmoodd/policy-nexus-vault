@@ -7,18 +7,58 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "13.0.5"
+  }
   public: {
     Tables: {
+      compliance_frameworks: {
+        Row: {
+          control_description: string | null
+          control_id: string
+          created_at: string | null
+          framework_category: string
+          framework_id: string
+          framework_name: string
+          keywords: string[] | null
+        }
+        Insert: {
+          control_description?: string | null
+          control_id: string
+          created_at?: string | null
+          framework_category: string
+          framework_id?: string
+          framework_name: string
+          keywords?: string[] | null
+        }
+        Update: {
+          control_description?: string | null
+          control_id?: string
+          created_at?: string | null
+          framework_category?: string
+          framework_id?: string
+          framework_name?: string
+          keywords?: string[] | null
+        }
+        Relationships: []
+      }
       policies: {
         Row: {
+          approved_at: string | null
+          approved_by: string | null
           author: string
           category: Database["public"]["Enums"]["policy_category"]
           content: string
           created_at: string | null
           created_by: string | null
+          department: string | null
           description: string | null
           file_url: string | null
           id: string
+          owner: string | null
+          reviewer: string | null
           status: Database["public"]["Enums"]["policy_status"]
           tags: string[] | null
           title: string
@@ -28,14 +68,19 @@ export type Database = {
           version: number
         }
         Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
           author: string
           category: Database["public"]["Enums"]["policy_category"]
           content: string
           created_at?: string | null
           created_by?: string | null
+          department?: string | null
           description?: string | null
           file_url?: string | null
           id?: string
+          owner?: string | null
+          reviewer?: string | null
           status?: Database["public"]["Enums"]["policy_status"]
           tags?: string[] | null
           title: string
@@ -45,14 +90,19 @@ export type Database = {
           version?: number
         }
         Update: {
+          approved_at?: string | null
+          approved_by?: string | null
           author?: string
           category?: Database["public"]["Enums"]["policy_category"]
           content?: string
           created_at?: string | null
           created_by?: string | null
+          department?: string | null
           description?: string | null
           file_url?: string | null
           id?: string
+          owner?: string | null
+          reviewer?: string | null
           status?: Database["public"]["Enums"]["policy_status"]
           tags?: string[] | null
           title?: string
@@ -94,6 +144,47 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "policy_access_logs_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      policy_sections: {
+        Row: {
+          compliance_tags: Json | null
+          created_at: string | null
+          policy_id: string
+          section_content: string
+          section_id: string
+          section_number: number
+          section_title: string
+          updated_at: string | null
+        }
+        Insert: {
+          compliance_tags?: Json | null
+          created_at?: string | null
+          policy_id: string
+          section_content: string
+          section_id?: string
+          section_number: number
+          section_title: string
+          updated_at?: string | null
+        }
+        Update: {
+          compliance_tags?: Json | null
+          created_at?: string | null
+          policy_id?: string
+          section_content?: string
+          section_id?: string
+          section_number?: number
+          section_title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policy_sections_policy_id_fkey"
             columns: ["policy_id"]
             isOneToOne: false
             referencedRelation: "policies"
@@ -324,64 +415,64 @@ export type Database = {
     Functions: {
       log_policy_access: {
         Args: {
-          policy_id_param: string
           action_param: string
           ip_address_param?: unknown
+          policy_id_param: string
           user_agent_param?: string
         }
         Returns: undefined
       }
       log_search: {
         Args: {
-          search_query_param: string
-          search_filters_param?: Json
           results_count_param?: number
+          search_filters_param?: Json
+          search_query_param: string
         }
         Returns: undefined
       }
       search_policies: {
         Args: {
-          search_query?: string
-          filter_tags?: string[]
           filter_category?: Database["public"]["Enums"]["policy_category"]
           filter_status?: Database["public"]["Enums"]["policy_status"]
+          filter_tags?: string[]
+          search_query?: string
         }
         Returns: {
-          id: string
-          title: string
-          description: string
-          content: string
-          tags: string[]
           category: Database["public"]["Enums"]["policy_category"]
-          version: number
-          status: Database["public"]["Enums"]["policy_status"]
-          file_url: string
-          created_by: string
-          updated_by: string
+          content: string
           created_at: string
-          updated_at: string
+          created_by: string
+          description: string
+          file_url: string
+          id: string
           rank: number
+          status: Database["public"]["Enums"]["policy_status"]
+          tags: string[]
+          title: string
+          updated_at: string
+          updated_by: string
+          version: number
         }[]
       }
       search_policies_enhanced: {
         Args: {
-          search_query?: string
+          filter_status?: string
           filter_tags?: string[]
           filter_type?: string
-          filter_status?: string
+          search_query?: string
         }
         Returns: {
-          policy_id: string
-          title: string
-          description: string
-          type: string
-          status: string
           author: string
-          created_at: string
-          updated_at: string
           content: string
-          tags: string[]
+          created_at: string
+          description: string
+          policy_id: string
           rank: number
+          status: string
+          tags: string[]
+          title: string
+          type: string
+          updated_at: string
         }[]
       }
     }
@@ -399,21 +490,25 @@ export type Database = {
   }
 }
 
-type DefaultSchema = Database[Extract<keyof Database, "public">]
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
@@ -431,14 +526,16 @@ export type Tables<
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
@@ -454,14 +551,16 @@ export type TablesInsert<
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
@@ -477,14 +576,16 @@ export type TablesUpdate<
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
-> = DefaultSchemaEnumNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
@@ -492,14 +593,16 @@ export type Enums<
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
     : never = never,
-> = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
