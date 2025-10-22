@@ -31,6 +31,10 @@ export function EditPolicyModal({ open, onOpenChange, policy }: EditPolicyModalP
     tags: [] as string[],
     newTag: '',
     changeDescription: '',
+    owner: '',
+    department: '',
+    security_domain: '',
+    framework_category: '',
   });
   
   const { updatePolicy } = usePolicies();
@@ -48,6 +52,10 @@ export function EditPolicyModal({ open, onOpenChange, policy }: EditPolicyModalP
         tags: [...policy.tags],
         newTag: '',
         changeDescription: '',
+        owner: policy.owner || '',
+        department: policy.department || '',
+        security_domain: policy.security_domain || '',
+        framework_category: policy.framework_category || '',
       });
     }
   }, [policy]);
@@ -90,6 +98,10 @@ export function EditPolicyModal({ open, onOpenChange, policy }: EditPolicyModalP
         type: formData.type,
         tags: formData.tags,
         status: formData.status,
+        owner: formData.owner.trim() || null,
+        department: formData.department.trim() || null,
+        security_domain: formData.security_domain || null,
+        framework_category: formData.framework_category || null,
       }, formData.changeDescription.trim());
 
       toast({
@@ -117,6 +129,10 @@ export function EditPolicyModal({ open, onOpenChange, policy }: EditPolicyModalP
       tags: [],
       newTag: '',
       changeDescription: '',
+      owner: '',
+      department: '',
+      security_domain: '',
+      framework_category: '',
     });
     setError(null);
   };
@@ -216,6 +232,65 @@ export function EditPolicyModal({ open, onOpenChange, policy }: EditPolicyModalP
                 <SelectItem value="archived">Archived</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="owner">Policy Owner</Label>
+              <Input
+                id="owner"
+                value={formData.owner}
+                onChange={(e) => setFormData({ ...formData, owner: e.target.value })}
+                placeholder="e.g., John Doe"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="department">Department</Label>
+              <Input
+                id="department"
+                value={formData.department}
+                onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                placeholder="e.g., IT Security"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="security_domain">Security Domain</Label>
+              <Select 
+                value={formData.security_domain} 
+                onValueChange={(value) => setFormData({ ...formData, security_domain: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select domain" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Information Security">Information Security</SelectItem>
+                  <SelectItem value="Physical Security">Physical Security</SelectItem>
+                  <SelectItem value="Operational Security">Operational Security</SelectItem>
+                  <SelectItem value="Cyber Security">Cyber Security</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="framework_category">Framework Category</Label>
+              <Select 
+                value={formData.framework_category} 
+                onValueChange={(value) => setFormData({ ...formData, framework_category: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="physical">Physical</SelectItem>
+                  <SelectItem value="technical">Technical</SelectItem>
+                  <SelectItem value="organizational">Organizational</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="space-y-2">

@@ -18,6 +18,10 @@ export interface DatabasePolicy {
   updated_at: string;
   author: string;
   category: 'Technical Control' | 'Physical Control' | 'Organizational Control' | 'Administrative Control';
+  owner?: string | null;
+  department?: string | null;
+  security_domain?: string | null;
+  framework_category?: string | null;
 }
 
 export interface DatabasePolicyText {
@@ -68,6 +72,27 @@ export function usePolicies() {
 
   useEffect(() => {
     fetchPolicies();
+
+    // Set up realtime subscription for policy changes
+    const channel = supabase
+      .channel('policies-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'policies'
+        },
+        (payload) => {
+          console.log('Policy change detected:', payload);
+          fetchPolicies();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const createPolicy = async (policyData: {
@@ -325,6 +350,59 @@ export function usePolicies() {
           await handlePolicyTags(policyId, updates.tags);
         } catch (tagError) {
           console.error('Error updating tags:', tagError);
+        }
+      }
+
+      // Regenerate policy sections if content changed
+      if (updates.content) {
+        try {
+          // Delete old sections
+          await supabase
+            .from('policy_sections')
+            .delete()
+            .eq('policy_id', policyId);
+
+          // Create new sections
+          const { splitPolicyIntoSections } = await import('@/utils/sectionSplitter');
+          const sections = splitPolicyIntoSections(updates.content);
+          
+          if (sections.length > 0) {
+            const { data: frameworks } = await supabase
+              .from('compliance_frameworks')
+              .select('*');
+            
+            const sectionsToInsert = await Promise.all(
+              sections.map(async (section) => {
+                const tags: string[] = [];
+                const contentLower = section.section_content.toLowerCase();
+                
+                if (frameworks) {
+                  for (const framework of frameworks) {
+                    const { framework_name, control_id, keywords } = framework;
+                    if (keywords && keywords.some((keyword: string) => contentLower.includes(keyword.toLowerCase()))) {
+                      tags.push(`${framework_name}-${control_id}`);
+                    }
+                  }
+                }
+                
+                return {
+                  policy_id: policyId,
+                  section_number: section.section_number,
+                  section_title: section.section_title,
+                  section_content: section.section_content,
+                  compliance_tags: tags
+                };
+              })
+            );
+            
+            await supabase
+              .from('policy_sections')
+              .insert(sectionsToInsert);
+            
+            console.log(`Regenerated ${sectionsToInsert.length} sections for policy ${policyId}`);
+          }
+        } catch (sectionError) {
+          console.error('Error regenerating policy sections:', sectionError);
         }
       }
 

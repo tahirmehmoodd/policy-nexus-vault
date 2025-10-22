@@ -23,6 +23,8 @@ export interface Policy {
   versions: Version[];
   framework_category: 'physical' | 'technical' | 'organizational';
   security_domain: string;
+  owner?: string;
+  department?: string;
 }
 
 // Security framework categories based on ISO/IEC 27002

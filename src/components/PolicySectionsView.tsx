@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { usePolicySections, DatabasePolicySection } from '@/hooks/usePolicySections';
+import { supabase } from '@/integrations/supabase/client';
 import { FileText, Shield, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -23,6 +24,28 @@ export function PolicySectionsView({ policyId }: PolicySectionsViewProps) {
     if (policyId) {
       loadSections();
     }
+
+    // Set up realtime subscription for section changes
+    const channel = supabase
+      .channel(`policy-sections-${policyId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'policy_sections',
+          filter: `policy_id=eq.${policyId}`
+        },
+        (payload) => {
+          console.log('Section change detected:', payload);
+          loadSections();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [policyId]);
 
   if (loading) {
