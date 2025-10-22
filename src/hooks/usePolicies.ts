@@ -74,8 +74,10 @@ export function usePolicies() {
     fetchPolicies();
 
     // Set up realtime subscription for policy changes
-    const channel = supabase
-      .channel('policies-changes')
+    const channelName = `policies-changes-${Date.now()}`;
+    const channel = supabase.channel(channelName);
+    
+    channel
       .on(
         'postgres_changes',
         {
@@ -91,6 +93,7 @@ export function usePolicies() {
       .subscribe();
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, []);

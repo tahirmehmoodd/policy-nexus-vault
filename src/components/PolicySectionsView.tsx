@@ -21,13 +21,15 @@ export function PolicySectionsView({ policyId }: PolicySectionsViewProps) {
       setSections(data);
     };
     
-    if (policyId) {
-      loadSections();
-    }
+    if (!policyId) return;
+    
+    loadSections();
 
-    // Set up realtime subscription for section changes
-    const channel = supabase
-      .channel(`policy-sections-${policyId}`)
+    // Set up realtime subscription for section changes with unique channel name
+    const channelName = `policy-sections-${policyId}-${Date.now()}`;
+    const channel = supabase.channel(channelName);
+    
+    channel
       .on(
         'postgres_changes',
         {
@@ -44,6 +46,7 @@ export function PolicySectionsView({ policyId }: PolicySectionsViewProps) {
       .subscribe();
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [policyId]);
