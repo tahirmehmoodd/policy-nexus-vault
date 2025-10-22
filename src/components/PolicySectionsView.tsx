@@ -26,7 +26,7 @@ export function PolicySectionsView({ policyId }: PolicySectionsViewProps) {
     loadSections();
 
     // Set up realtime subscription for section changes with unique channel name
-    const channelName = `policy-sections-${policyId}-${Date.now()}`;
+    const channelName = `policy-sections-${policyId}-${(typeof crypto !== 'undefined' && 'randomUUID' in crypto) ? crypto.randomUUID() : Math.random().toString(36).slice(2)}`;
     const channel = supabase.channel(channelName);
     
     channel

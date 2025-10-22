@@ -74,7 +74,7 @@ export function usePolicies() {
     fetchPolicies();
 
     // Set up realtime subscription for policy changes
-    const channelName = `policies-changes-${Date.now()}`;
+    const channelName = `policies-changes-${(typeof crypto !== 'undefined' && 'randomUUID' in crypto) ? crypto.randomUUID() : Math.random().toString(36).slice(2)}`;
     const channel = supabase.channel(channelName);
     
     channel
