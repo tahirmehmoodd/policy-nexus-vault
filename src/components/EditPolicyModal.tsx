@@ -27,7 +27,7 @@ export function EditPolicyModal({ open, onOpenChange, policy }: EditPolicyModalP
     description: '',
     content: '',
     type: '',
-    status: 'draft' as 'draft' | 'active' | 'archived',
+    status: 'draft' as 'draft' | 'active' | 'archived' | 'under_review',
     tags: [] as string[],
     newTag: '',
     changeDescription: '',

@@ -13,7 +13,7 @@ export interface Policy {
   title: string;
   description: string;
   type: string;
-  status: 'active' | 'draft' | 'archived';
+  status: 'active' | 'draft' | 'archived' | 'under_review';
   created_at: string;
   updated_at: string;
   author: string;
@@ -24,6 +24,8 @@ export interface Policy {
   framework_category: 'physical' | 'technical' | 'organizational';
   security_domain: string;
   owner?: string;
+  owner_id?: string;
+  reviewer_id?: string;
   department?: string;
 }
 

@@ -19,6 +19,8 @@ export interface DatabasePolicy {
   author: string;
   category: 'Technical Control' | 'Physical Control' | 'Organizational Control' | 'Administrative Control';
   owner?: string | null;
+  owner_id?: string | null;
+  reviewer_id?: string | null;
   department?: string | null;
   security_domain?: string | null;
   framework_category?: string | null;
