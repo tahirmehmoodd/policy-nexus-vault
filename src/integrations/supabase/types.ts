@@ -58,7 +58,9 @@ export type Database = {
           file_url: string | null
           id: string
           owner: string | null
+          owner_id: string | null
           reviewer: string | null
+          reviewer_id: string | null
           status: Database["public"]["Enums"]["policy_status"]
           tags: string[] | null
           title: string
@@ -80,7 +82,9 @@ export type Database = {
           file_url?: string | null
           id?: string
           owner?: string | null
+          owner_id?: string | null
           reviewer?: string | null
+          reviewer_id?: string | null
           status?: Database["public"]["Enums"]["policy_status"]
           tags?: string[] | null
           title: string
@@ -102,7 +106,9 @@ export type Database = {
           file_url?: string | null
           id?: string
           owner?: string | null
+          owner_id?: string | null
           reviewer?: string | null
+          reviewer_id?: string | null
           status?: Database["public"]["Enums"]["policy_status"]
           tags?: string[] | null
           title?: string
@@ -118,7 +124,7 @@ export type Database = {
           action: string
           created_at: string | null
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           policy_id: string
           user_agent: string | null
           user_id: string | null
@@ -127,7 +133,7 @@ export type Database = {
           action: string
           created_at?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           policy_id: string
           user_agent?: string | null
           user_id?: string | null
@@ -136,7 +142,7 @@ export type Database = {
           action?: string
           created_at?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           policy_id?: string
           user_agent?: string | null
           user_id?: string | null
@@ -155,7 +161,9 @@ export type Database = {
         Row: {
           compliance_tags: Json | null
           created_at: string | null
+          embedding: string | null
           policy_id: string
+          search_vector: unknown
           section_content: string
           section_id: string
           section_number: number
@@ -165,7 +173,9 @@ export type Database = {
         Insert: {
           compliance_tags?: Json | null
           created_at?: string | null
+          embedding?: string | null
           policy_id: string
+          search_vector?: unknown
           section_content: string
           section_id?: string
           section_number: number
@@ -175,7 +185,9 @@ export type Database = {
         Update: {
           compliance_tags?: Json | null
           created_at?: string | null
+          embedding?: string | null
           policy_id?: string
+          search_vector?: unknown
           section_content?: string
           section_id?: string
           section_number?: number
@@ -473,6 +485,30 @@ export type Database = {
           title: string
           type: string
           updated_at: string
+        }[]
+      }
+      search_policy_sections_keyword: {
+        Args: { match_count?: number; search_query: string }
+        Returns: {
+          policy_id: string
+          rank: number
+          section_content: string
+          section_id: string
+          section_title: string
+        }[]
+      }
+      search_policy_sections_semantic: {
+        Args: {
+          match_count?: number
+          match_threshold?: number
+          query_embedding: string
+        }
+        Returns: {
+          policy_id: string
+          section_content: string
+          section_id: string
+          section_title: string
+          similarity: number
         }[]
       }
     }
