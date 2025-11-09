@@ -10,6 +10,7 @@ import { TagManagement } from "@/components/TagManagement";
 import { EnhancedSearchFilters, SearchFilters } from "@/components/EnhancedSearchFilters";
 import { VersionHistoryModal } from "@/components/VersionHistoryModal";
 import { PolicyAssistant } from "@/components/PolicyAssistant";
+import { NotificationBell } from "@/components/NotificationBell";
 import { usePolicies, DatabasePolicy } from "@/hooks/usePolicies";
 import { usePolicyRepository } from "@/hooks/usePolicyRepository";
 import { useAuth } from "@/hooks/useAuth";
@@ -369,11 +370,12 @@ export default function Index() {
                   </p>
                 </motion.div>
                 <motion.div 
-                  className="flex gap-2"
+                  className="flex gap-2 items-center"
                   initial={{ x: 20, opacity: 0 }}
                   animate={{ x: 0, opacity: 1 }}
                   transition={{ duration: 0.5, delay: 0.2 }}
                 >
+                  <NotificationBell />
                   <Button variant="outline" onClick={() => setTagManagementOpen(true)}>
                     <Tag className="h-4 w-4 mr-2" />
                     Manage Tags

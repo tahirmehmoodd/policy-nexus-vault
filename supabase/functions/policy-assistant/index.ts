@@ -56,9 +56,44 @@ ${policiesContext}
 
 Provide 3-5 specific policy recommendations with brief explanations of why they're relevant to their role.`;
     } else {
-      // General Q&A mode
-      systemPrompt = `You are a helpful policy assistant. Answer questions about organizational policies, compliance, and security practices.
-      Be concise, accurate, and provide actionable guidance. If you don't know something, say so.`;
+      // General Q&A mode - Fetch ALL policy content for comprehensive training
+      const { data: policiesWithContent } = await supabase
+        .from('policies')
+        .select(`
+          id,
+          title,
+          description,
+          type,
+          department,
+          security_domain,
+          framework_category,
+          policy_texts!inner(content)
+        `)
+        .eq('status', 'active')
+        .limit(20);
+
+      const fullPolicyContext = policiesWithContent 
+        ? policiesWithContent.map(p => {
+            const content = p.policy_texts && p.policy_texts.length > 0 
+              ? p.policy_texts[0].content.substring(0, 1000) // Limit content to avoid token overflow
+              : 'No content available';
+            return `
+Policy: ${p.title}
+Type: ${p.type}
+Department: ${p.department || 'General'}
+Framework: ${p.framework_category || 'N/A'}
+Description: ${p.description || 'N/A'}
+Content Excerpt: ${content}...
+---`;
+          }).join('\n')
+        : 'No policies available in the system yet.';
+
+      systemPrompt = `You are a helpful policy assistant trained on the organization's current policies. Answer questions about organizational policies, compliance, and security practices based on the following policy database.
+
+CURRENT POLICIES IN SYSTEM:
+${fullPolicyContext}
+
+Use this policy context to provide accurate, specific answers. Be concise and actionable. If asked about a policy not in the system, say so clearly.`;
     }
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
