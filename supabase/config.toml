@@ -1,1 +1,4 @@
 project_id = "fqpflhvwxwkadzminjhj"
+
+[functions.policy-assistant]
+verify_jwt = false

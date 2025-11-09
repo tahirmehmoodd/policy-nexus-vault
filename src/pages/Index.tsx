@@ -9,6 +9,7 @@ import { PolicyTemplatesModal } from "@/components/PolicyTemplatesModal";
 import { TagManagement } from "@/components/TagManagement";
 import { EnhancedSearchFilters, SearchFilters } from "@/components/EnhancedSearchFilters";
 import { VersionHistoryModal } from "@/components/VersionHistoryModal";
+import { PolicyAssistant } from "@/components/PolicyAssistant";
 import { usePolicies, DatabasePolicy } from "@/hooks/usePolicies";
 import { usePolicyRepository } from "@/hooks/usePolicyRepository";
 import { useAuth } from "@/hooks/useAuth";
@@ -977,6 +978,9 @@ The project demonstrates best practices in modern web development, security impl
           </div>
         </DialogContent>
       </Dialog>
+      
+      {/* AI Policy Assistant */}
+      <PolicyAssistant />
     </div>
   );
 }

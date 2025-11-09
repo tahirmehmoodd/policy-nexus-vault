@@ -56,11 +56,13 @@ export type Database = {
           department: string | null
           description: string | null
           file_url: string | null
+          framework_category: string | null
           id: string
           owner: string | null
           owner_id: string | null
           reviewer: string | null
           reviewer_id: string | null
+          security_domain: string | null
           status: Database["public"]["Enums"]["policy_status"]
           tags: string[] | null
           title: string
@@ -80,11 +82,13 @@ export type Database = {
           department?: string | null
           description?: string | null
           file_url?: string | null
+          framework_category?: string | null
           id?: string
           owner?: string | null
           owner_id?: string | null
           reviewer?: string | null
           reviewer_id?: string | null
+          security_domain?: string | null
           status?: Database["public"]["Enums"]["policy_status"]
           tags?: string[] | null
           title: string
@@ -104,11 +108,13 @@ export type Database = {
           department?: string | null
           description?: string | null
           file_url?: string | null
+          framework_category?: string | null
           id?: string
           owner?: string | null
           owner_id?: string | null
           reviewer?: string | null
           reviewer_id?: string | null
+          security_domain?: string | null
           status?: Database["public"]["Enums"]["policy_status"]
           tags?: string[] | null
           title?: string
