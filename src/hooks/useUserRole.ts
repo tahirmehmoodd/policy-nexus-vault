@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-export type UserRole = 'admin' | 'moderator' | 'user';
+export type UserRole = 'admin' | 'reviewer' | 'editor' | 'viewer';
 
 export const useUserRole = () => {
   const [role, setRole] = useState<UserRole | null>(null);
@@ -28,29 +28,32 @@ export const useUserRole = () => {
 
         if (error) {
           console.error('Error fetching user role:', error);
-          setRole('user'); // Default to user role
+          setRole('editor'); // Default to editor role
           setIsAdmin(false);
         } else if (roles && roles.length > 0) {
-          // Check if user has admin role
-          const hasAdminRole = roles.some(r => r.role === 'admin');
+          // Determine role priority: admin > reviewer > editor > viewer
+          const hasAdminRole = roles.some((r: any) => r.role === 'admin');
+          const hasReviewerRole = roles.some((r: any) => r.role === 'reviewer');
+          const hasEditorRole = roles.some((r: any) => r.role === 'editor');
           setIsAdmin(hasAdminRole);
-          
-          // Set highest role (admin > moderator > user)
+
           if (hasAdminRole) {
             setRole('admin');
-          } else if (roles.some(r => r.role === 'moderator')) {
-            setRole('moderator');
+          } else if (hasReviewerRole) {
+            setRole('reviewer');
+          } else if (hasEditorRole) {
+            setRole('editor');
           } else {
-            setRole('user');
+            setRole('viewer');
           }
         } else {
-          // No roles assigned, default to user
-          setRole('user');
+          // No roles assigned, default to editor
+          setRole('editor');
           setIsAdmin(false);
         }
       } catch (error) {
         console.error('Error in useUserRole:', error);
-        setRole('user');
+        setRole('editor');
         setIsAdmin(false);
       } finally {
         setLoading(false);

@@ -10,7 +10,7 @@ export interface DatabasePolicy {
   tags: string[] | null;
   type: string;
   version: number;
-  status: 'draft' | 'active' | 'archived' | 'under_review';
+  status: 'draft' | 'active' | 'archived' | 'under_review' | 'review' | 'approved' | 'deprecated';
   file_url: string | null;
   created_by: string | null;
   updated_by: string | null;
@@ -106,7 +106,7 @@ export function usePolicies() {
     content: string;
     type: string;
     tags?: string[];
-    status?: 'draft' | 'active' | 'archived';
+    status?: 'draft' | 'review';
     owner?: string;
     department?: string;
   }) => {
@@ -152,7 +152,7 @@ export function usePolicies() {
 
       const { data, error } = await supabase
         .from('policies')
-        .insert(insertData)
+        .insert(insertData as any)
         .select()
         .single();
 
