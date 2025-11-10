@@ -104,6 +104,7 @@ export type Database = {
           id: string
           owner: string | null
           owner_id: string | null
+          rejection_reason: string | null
           reviewer: string | null
           reviewer_id: string | null
           security_domain: string | null
@@ -130,6 +131,7 @@ export type Database = {
           id?: string
           owner?: string | null
           owner_id?: string | null
+          rejection_reason?: string | null
           reviewer?: string | null
           reviewer_id?: string | null
           security_domain?: string | null
@@ -156,6 +158,7 @@ export type Database = {
           id?: string
           owner?: string | null
           owner_id?: string | null
+          rejection_reason?: string | null
           reviewer?: string | null
           reviewer_id?: string | null
           security_domain?: string | null

@@ -11,9 +11,11 @@ import { EnhancedSearchFilters, SearchFilters } from "@/components/EnhancedSearc
 import { VersionHistoryModal } from "@/components/VersionHistoryModal";
 import { PolicyAssistant } from "@/components/PolicyAssistant";
 import { NotificationBell } from "@/components/NotificationBell";
+import { AdminLink } from "@/components/AdminLink";
 import { usePolicies, DatabasePolicy } from "@/hooks/usePolicies";
 import { usePolicyRepository } from "@/hooks/usePolicyRepository";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -376,6 +378,7 @@ export default function Index() {
                   transition={{ duration: 0.5, delay: 0.2 }}
                 >
                   <NotificationBell />
+                  <AdminLink />
                   <Button variant="outline" onClick={() => setTagManagementOpen(true)}>
                     <Tag className="h-4 w-4 mr-2" />
                     Manage Tags

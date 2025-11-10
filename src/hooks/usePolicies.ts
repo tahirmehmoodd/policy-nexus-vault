@@ -243,6 +243,16 @@ export function usePolicies() {
 
       await fetchPolicies();
       
+      // Send email notification to admins if policy is under review
+      if (data.status === 'under_review') {
+        const { sendAdminEmailNotification } = await import('@/utils/emailNotifications');
+        await sendAdminEmailNotification(
+          data.title,
+          data.author,
+          data.id
+        );
+      }
+      
       toast({
         title: "Success",
         description: "Policy created successfully",
@@ -412,6 +422,19 @@ export function usePolicies() {
       }
 
       await fetchPolicies();
+      
+      // Send email notification to admins if policy status changed to under_review
+      const wasUnderReview = currentPolicy.status === 'under_review';
+      const isNowUnderReview = data.status === 'under_review';
+      if (isNowUnderReview && !wasUnderReview) {
+        const { sendAdminEmailNotification } = await import('@/utils/emailNotifications');
+        await sendAdminEmailNotification(
+          data.title,
+          data.author,
+          data.id
+        );
+      }
+      
       return data;
     } catch (error) {
       console.error('Error updating policy:', error);
