@@ -6,8 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { CheckCircle, XCircle, Eye, Clock, FileText } from 'lucide-react';
+import { CheckCircle, XCircle, Eye, Clock, FileText, Users } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { UserRoleManagement } from '@/components/UserRoleManagement';
 import {
   Dialog,
   DialogContent,
@@ -177,10 +179,22 @@ export default function AdminDashboard() {
     <div className="container mx-auto py-8 px-4">
       <div className="mb-8">
         <h1 className="text-4xl font-bold mb-2">Admin Dashboard</h1>
-        <p className="text-muted-foreground">Review and manage policies awaiting approval</p>
+        <p className="text-muted-foreground">Manage policies, users, and system settings</p>
       </div>
 
-      {pendingPolicies.length === 0 ? (
+      <Tabs defaultValue="policies" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-6">
+          <TabsTrigger value="policies" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Policy Reviews
+          </TabsTrigger>
+          <TabsTrigger value="users" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            User Management
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="policies">{pendingPolicies.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
             <FileText className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
@@ -258,6 +272,13 @@ export default function AdminDashboard() {
           ))}
         </div>
       )}
+        </TabsContent>
+
+        <TabsContent value="users">
+          <UserRoleManagement />
+        </TabsContent>
+      </Tabs>
+
 
       <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
         <DialogContent>

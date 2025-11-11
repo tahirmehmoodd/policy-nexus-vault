@@ -17,6 +17,8 @@ import {
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { usePolicies } from "@/hooks/usePolicies";
+import { useUserRole } from "@/hooks/useUserRole";
+import { supabase } from "@/integrations/supabase/client";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,8 +43,30 @@ interface PolicyCardProps {
 export function PolicyCard({ policy, onClick, onEdit, onDownload, onDelete, viewMode = 'grid' }: PolicyCardProps) {
   const { toast } = useToast();
   const { deletePolicy } = usePolicies();
+  const { isAdmin } = useUserRole();
+  const [isOwner, setIsOwner] = React.useState(false);
+
+  // Check if current user is the policy owner
+  React.useEffect(() => {
+    const checkOwnership = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: policyData } = await supabase
+          .from('policies')
+          .select('created_by')
+          .eq('id', policy.policy_id)
+          .single();
+        
+        setIsOwner(policyData?.created_by === user.id);
+      }
+    };
+    checkOwnership();
+  }, [policy.policy_id]);
 
   console.log('PolicyCard rendered with onDelete:', !!onDelete);
+
+  // Only show edit/delete buttons to admins or policy owners
+  const canModify = isAdmin || isOwner;
 
   const handleDownloadJSON = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -255,7 +279,7 @@ export function PolicyCard({ policy, onClick, onEdit, onDownload, onDelete, view
                 <DownloadIcon className="h-4 w-4 mr-1" />
                 PDF
               </Button>
-              {onEdit && (
+              {canModify && onEdit && (
                 <Button variant="outline" size="sm" onClick={(e) => {
                   e.stopPropagation();
                   onEdit();
@@ -263,32 +287,34 @@ export function PolicyCard({ policy, onClick, onEdit, onDownload, onDelete, view
                   <EditIcon className="h-4 w-4" />
                 </Button>
               )}
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={(e) => e.stopPropagation()}
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                  >
-                    <Trash2Icon className="h-4 w-4" />
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Delete Policy</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Are you sure you want to delete "{policy.title}"? This action cannot be undone and will permanently remove the policy from the database.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                      Delete Policy
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              {canModify && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2Icon className="h-4 w-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Policy</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete "{policy.title}"? This action cannot be undone and will permanently remove the policy from the database.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                        Delete Policy
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
             </div>
           </div>
         </CardContent>
@@ -383,7 +409,7 @@ export function PolicyCard({ policy, onClick, onEdit, onDownload, onDelete, view
             <DownloadIcon className="h-4 w-4 mr-1" />
             PDF
           </Button>
-          {onEdit && (
+          {canModify && onEdit && (
             <Button variant="outline" size="sm" onClick={(e) => {
               e.stopPropagation();
               onEdit();
@@ -394,32 +420,34 @@ export function PolicyCard({ policy, onClick, onEdit, onDownload, onDelete, view
           <Button variant="ghost" size="sm" onClick={onClick}>
             <EyeIcon className="h-4 w-4" />
           </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={(e) => e.stopPropagation()}
-                className="text-red-600 hover:text-red-700 hover:bg-red-50"
-              >
-                <Trash2Icon className="h-4 w-4" />
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete Policy</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Are you sure you want to delete "{policy.title}"? This action cannot be undone and will permanently remove the policy from the database.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                  Delete Policy
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          {canModify && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  <Trash2Icon className="h-4 w-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete Policy</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to delete "{policy.title}"? This action cannot be undone and will permanently remove the policy from the database.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    Delete Policy
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
         </div>
       </CardContent>
     </Card>

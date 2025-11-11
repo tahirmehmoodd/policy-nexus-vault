@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -6,6 +6,8 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PolicySectionsView } from "@/components/PolicySectionsView";
+import { useUserRole } from "@/hooks/useUserRole";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   FileTextIcon, 
   CalendarIcon, 
@@ -38,6 +40,28 @@ export function PolicyDetail({
   onViewVersionHistory,
   onClose 
 }: PolicyDetailProps) {
+  const { isAdmin } = useUserRole();
+  const [isOwner, setIsOwner] = useState(false);
+
+  // Check if current user is the policy owner
+  useEffect(() => {
+    const checkOwnership = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: policyData } = await supabase
+          .from('policies')
+          .select('created_by')
+          .eq('id', policy.policy_id)
+          .single();
+        
+        setIsOwner(policyData?.created_by === user.id);
+      }
+    };
+    checkOwnership();
+  }, [policy.policy_id]);
+
+  const canModify = isAdmin || isOwner;
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -269,10 +293,12 @@ export function PolicyDetail({
               </Button>
             )}
           </div>
-          <Button onClick={onEdit} className="w-full">
-            <EditIcon className="h-4 w-4 mr-2" />
-            Edit Policy
-          </Button>
+          {canModify && (
+            <Button onClick={onEdit} className="w-full">
+              <EditIcon className="h-4 w-4 mr-2" />
+              Edit Policy
+            </Button>
+          )}
         </div>
       </div>
     </div>
