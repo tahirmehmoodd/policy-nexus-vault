@@ -36,9 +36,9 @@ const POLICY_TYPES = [
 
 const POLICY_STATUS = [
   'draft',
-  'active', 
-  'archived',
-  'under_review'
+  'review',
+  'approved',
+  'deprecated'
 ];
 
 const POLICY_CATEGORIES = [

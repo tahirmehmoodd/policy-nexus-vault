@@ -59,7 +59,7 @@ export default function AdminDashboard() {
       const { data, error } = await supabase
         .from('policies')
         .select('id, title, description, author, created_at, type, department')
-        .eq('status', 'under_review')
+        .eq('status', 'review')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -81,13 +81,17 @@ export default function AdminDashboard() {
       const { error } = await supabase
         .from('policies')
         .update({
-          status: 'active',
+          status: 'approved',
           approved_at: new Date().toISOString(),
           approved_by: (await supabase.auth.getUser()).data.user?.id,
         })
         .eq('id', policyId);
 
       if (error) throw error;
+
+      // Send email notification to policy owner
+      const { sendOwnerEmailNotification } = await import('@/utils/emailNotifications');
+      await sendOwnerEmailNotification(policyId, 'approved');
 
       toast({
         title: "Success",
@@ -125,6 +129,10 @@ export default function AdminDashboard() {
         .eq('id', selectedPolicy);
 
       if (error) throw error;
+
+      // Send email notification to policy owner
+      const { sendOwnerEmailNotification } = await import('@/utils/emailNotifications');
+      await sendOwnerEmailNotification(selectedPolicy, 'rejected', rejectionReason);
 
       toast({
         title: "Success",

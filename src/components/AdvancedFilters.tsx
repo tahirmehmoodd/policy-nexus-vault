@@ -229,9 +229,10 @@ export function AdvancedFilters({ onFiltersChange, availableTags }: AdvancedFilt
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="approved">Approved</SelectItem>
                     <SelectItem value="draft">Draft</SelectItem>
-                    <SelectItem value="archived">Archived</SelectItem>
+                    <SelectItem value="review">Under Review</SelectItem>
+                    <SelectItem value="deprecated">Deprecated</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

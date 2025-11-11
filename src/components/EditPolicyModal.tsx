@@ -27,7 +27,7 @@ export function EditPolicyModal({ open, onOpenChange, policy }: EditPolicyModalP
     description: '',
     content: '',
     type: '',
-    status: 'draft' as 'draft' | 'active' | 'archived' | 'under_review',
+    status: 'draft' as 'draft' | 'review' | 'approved' | 'deprecated',
     tags: [] as string[],
     newTag: '',
     changeDescription: '',
@@ -43,12 +43,22 @@ export function EditPolicyModal({ open, onOpenChange, policy }: EditPolicyModalP
   // Update form data when policy changes
   useEffect(() => {
     if (policy) {
+      // Map old status values to new ones
+      const mapStatus = (oldStatus: string): 'draft' | 'review' | 'approved' | 'deprecated' => {
+        switch (oldStatus) {
+          case 'under_review': return 'review';
+          case 'active': return 'approved';
+          case 'archived': return 'deprecated';
+          default: return oldStatus as 'draft' | 'review' | 'approved' | 'deprecated';
+        }
+      };
+      
       setFormData({
         title: policy.title,
         description: policy.description,
         content: policy.content,
         type: policy.type,
-        status: policy.status,
+        status: mapStatus(policy.status),
         tags: [...policy.tags],
         newTag: '',
         changeDescription: '',
@@ -228,8 +238,9 @@ export function EditPolicyModal({ open, onOpenChange, policy }: EditPolicyModalP
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="draft">Draft</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="archived">Archived</SelectItem>
+                <SelectItem value="review">Under Review</SelectItem>
+                <SelectItem value="approved">Approved</SelectItem>
+                <SelectItem value="deprecated">Deprecated</SelectItem>
               </SelectContent>
             </Select>
           </div>

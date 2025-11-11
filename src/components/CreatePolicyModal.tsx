@@ -25,7 +25,7 @@ export function CreatePolicyModal({ open, onOpenChange }: CreatePolicyModalProps
     description: '',
     content: '',
     type: '',
-    status: 'draft' as 'draft' | 'active' | 'archived',
+    status: 'draft' as 'draft' | 'review',
     tags: [] as string[],
     newTag: '',
     owner: '',
@@ -216,8 +216,7 @@ export function CreatePolicyModal({ open, onOpenChange }: CreatePolicyModalProps
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="draft">Draft</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="archived">Archived</SelectItem>
+                <SelectItem value="review">Submit for Review</SelectItem>
               </SelectContent>
             </Select>
           </div>

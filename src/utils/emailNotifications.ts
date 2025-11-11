@@ -58,3 +58,54 @@ export const sendAdminEmailNotification = async (
     // Don't throw - we don't want email failures to break the main flow
   }
 };
+
+export const sendOwnerEmailNotification = async (
+  policyId: string,
+  decision: 'approved' | 'rejected',
+  rejectionReason?: string
+) => {
+  try {
+    // Get the policy owner's information
+    const { data: policy, error: policyError } = await supabase
+      .from('policies')
+      .select('title, author, created_by')
+      .eq('id', policyId)
+      .single();
+
+    if (policyError || !policy) {
+      console.error('Could not find policy:', policyError);
+      return;
+    }
+
+    // Get owner's email from profiles
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('email')
+      .eq('id', policy.created_by)
+      .single();
+
+    if (profileError || !profile?.email) {
+      console.warn(`Could not find email for policy owner ${policy.created_by}`);
+      return;
+    }
+
+    // Send email notification
+    const { error: emailError } = await supabase.functions.invoke('send-policy-notification', {
+      body: {
+        ownerEmail: profile.email,
+        policyTitle: policy.title,
+        decision,
+        rejectionReason,
+      },
+    });
+
+    if (emailError) {
+      console.error(`Failed to send email to policy owner ${profile.email}:`, emailError);
+    } else {
+      console.log(`Email notification sent to policy owner ${profile.email}`);
+    }
+  } catch (error) {
+    console.error('Error in sendOwnerEmailNotification:', error);
+    // Don't throw - we don't want email failures to break the main flow
+  }
+};

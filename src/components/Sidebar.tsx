@@ -19,7 +19,7 @@ export function Sidebar({ onCategoryChange, onNewPolicyClick, activeCategory, po
 
   // Use allPolicies for counts to show total numbers, not filtered
   const totalPolicies = allPolicies.length;
-  const activePolicies = allPolicies.filter(p => p.status === 'active').length;
+  const activePolicies = allPolicies.filter(p => p.status === 'approved').length;
   const draftPolicies = allPolicies.filter(p => p.status === 'draft').length;
 
   // Simplified category counting - directly match categories without complex lookups

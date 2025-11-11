@@ -244,7 +244,7 @@ export function usePolicies() {
       await fetchPolicies();
       
       // Send email notification to admins if policy is under review
-      if (data.status === 'under_review') {
+      if (data.status === 'review') {
         const { sendAdminEmailNotification } = await import('@/utils/emailNotifications');
         await sendAdminEmailNotification(
           data.title,
@@ -423,9 +423,9 @@ export function usePolicies() {
 
       await fetchPolicies();
       
-      // Send email notification to admins if policy status changed to under_review
-      const wasUnderReview = currentPolicy.status === 'under_review';
-      const isNowUnderReview = data.status === 'under_review';
+      // Send email notification to admins if policy status changed to review
+      const wasUnderReview = currentPolicy.status === 'review';
+      const isNowUnderReview = data.status === 'review';
       if (isNowUnderReview && !wasUnderReview) {
         const { sendAdminEmailNotification } = await import('@/utils/emailNotifications');
         await sendAdminEmailNotification(
