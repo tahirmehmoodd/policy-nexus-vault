@@ -428,7 +428,6 @@ Violations of this policy may result in:
         content: template.content,
         type: template.type,
         tags: [...template.tags, 'Template', template.source],
-        status: 'draft',
       });
 
       toast({

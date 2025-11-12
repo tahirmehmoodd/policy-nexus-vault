@@ -111,6 +111,8 @@ export type Database = {
           status: Database["public"]["Enums"]["policy_status"]
           tags: string[] | null
           title: string
+          transitioned_at: string | null
+          transitioned_by: string | null
           type: string
           updated_at: string | null
           updated_by: string | null
@@ -138,6 +140,8 @@ export type Database = {
           status?: Database["public"]["Enums"]["policy_status"]
           tags?: string[] | null
           title: string
+          transitioned_at?: string | null
+          transitioned_by?: string | null
           type?: string
           updated_at?: string | null
           updated_by?: string | null
@@ -165,6 +169,8 @@ export type Database = {
           status?: Database["public"]["Enums"]["policy_status"]
           tags?: string[] | null
           title?: string
+          transitioned_at?: string | null
+          transitioned_by?: string | null
           type?: string
           updated_at?: string | null
           updated_by?: string | null
@@ -499,7 +505,14 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      v_user_current_role: {
+        Row: {
+          created_at: string | null
+          role: Database["public"]["Enums"]["app_role"] | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       has_role: {
@@ -594,6 +607,14 @@ export type Database = {
           section_title: string
           similarity: number
         }[]
+      }
+      transition_policy_status: {
+        Args: {
+          new_status_param: Database["public"]["Enums"]["policy_status"]
+          policy_id_param: string
+          rejection_reason_param?: string
+        }
+        Returns: undefined
       }
     }
     Enums: {

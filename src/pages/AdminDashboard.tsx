@@ -80,14 +80,11 @@ export default function AdminDashboard() {
 
   const handleApprove = async (policyId: string) => {
     try {
-      const { error } = await supabase
-        .from('policies')
-        .update({
-          status: 'approved',
-          approved_at: new Date().toISOString(),
-          approved_by: (await supabase.auth.getUser()).data.user?.id,
-        })
-        .eq('id', policyId);
+      // Use transition function for proper workflow
+      const { error } = await supabase.rpc('transition_policy_status', {
+        policy_id_param: policyId,
+        new_status_param: 'approved',
+      });
 
       if (error) throw error;
 
@@ -101,11 +98,11 @@ export default function AdminDashboard() {
       });
 
       fetchPendingPolicies();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error approving policy:', error);
       toast({
         title: "Error",
-        description: "Failed to approve policy",
+        description: error.message || "Failed to approve policy",
         variant: "destructive",
       });
     }
@@ -122,13 +119,12 @@ export default function AdminDashboard() {
     }
 
     try {
-      const { error } = await supabase
-        .from('policies')
-        .update({
-          status: 'draft',
-          rejection_reason: rejectionReason,
-        })
-        .eq('id', selectedPolicy);
+      // Use transition function for proper workflow
+      const { error } = await supabase.rpc('transition_policy_status', {
+        policy_id_param: selectedPolicy,
+        new_status_param: 'draft',
+        rejection_reason_param: rejectionReason,
+      });
 
       if (error) throw error;
 
@@ -145,11 +141,11 @@ export default function AdminDashboard() {
       setRejectionReason('');
       setSelectedPolicy(null);
       fetchPendingPolicies();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error rejecting policy:', error);
       toast({
         title: "Error",
-        description: "Failed to reject policy",
+        description: error.message || "Failed to reject policy",
         variant: "destructive",
       });
     }

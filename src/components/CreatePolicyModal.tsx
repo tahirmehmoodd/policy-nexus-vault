@@ -25,7 +25,6 @@ export function CreatePolicyModal({ open, onOpenChange }: CreatePolicyModalProps
     description: '',
     content: '',
     type: '',
-    status: 'draft' as 'draft' | 'review',
     tags: [] as string[],
     newTag: '',
     owner: '',
@@ -61,13 +60,13 @@ export function CreatePolicyModal({ open, onOpenChange }: CreatePolicyModalProps
       setLoading(true);
       console.log('Submitting policy creation form with data:', formData);
       
+      // Policies are always created in draft status
       const policy = await createPolicy({
         title: formData.title.trim(),
         description: formData.description.trim() || undefined,
         content: formData.content.trim(),
         type: formData.type,
         tags: formData.tags,
-        status: formData.status,
         owner: formData.owner.trim() || undefined,
         department: formData.department.trim() || undefined,
       });
@@ -116,7 +115,6 @@ export function CreatePolicyModal({ open, onOpenChange }: CreatePolicyModalProps
       description: '',
       content: '',
       type: '',
-      status: 'draft',
       tags: [],
       newTag: '',
       owner: '',
@@ -208,18 +206,6 @@ export function CreatePolicyModal({ open, onOpenChange }: CreatePolicyModalProps
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="status">Status</Label>
-            <Select value={formData.status} onValueChange={(value: any) => setFormData({ ...formData, status: value })}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="draft">Draft</SelectItem>
-                <SelectItem value="review">Submit for Review</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">

@@ -58,7 +58,6 @@ export function usePolicyRepository() {
         description: template.description,
         content: template.content,
         type: template.type,
-        status: 'draft',
       });
 
       toast({

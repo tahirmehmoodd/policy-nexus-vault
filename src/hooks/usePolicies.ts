@@ -106,9 +106,9 @@ export function usePolicies() {
     content: string;
     type: string;
     tags?: string[];
-    status?: 'draft' | 'review';
     owner?: string;
     department?: string;
+    reviewer_id?: string;
   }) => {
     try {
       console.log('Starting policy creation with data:', policyData);
@@ -133,6 +133,7 @@ export function usePolicies() {
 
       const category = categoryMapping[policyData.type] || 'Technical Control';
       
+      // Policies are always created in draft status
       const insertData = {
         title: policyData.title,
         description: policyData.description || null,
@@ -140,12 +141,13 @@ export function usePolicies() {
         type: policyData.type,
         category: category,
         tags: policyData.tags || [],
-        status: policyData.status || 'draft',
+        status: 'draft',
         created_by: user.id,
         updated_by: user.id,
         author: user.email || 'Unknown',
-        owner: policyData.owner || user.email || 'Unknown',
+        owner_id: user.id,
         department: policyData.department || null,
+        reviewer_id: policyData.reviewer_id || null,
       };
 
       console.log('Insert data prepared:', insertData);
@@ -243,19 +245,9 @@ export function usePolicies() {
 
       await fetchPolicies();
       
-      // Send email notification to admins if policy is under review
-      if (data.status === 'review') {
-        const { sendAdminEmailNotification } = await import('@/utils/emailNotifications');
-        await sendAdminEmailNotification(
-          data.title,
-          data.author,
-          data.id
-        );
-      }
-      
       toast({
         title: "Success",
-        description: "Policy created successfully",
+        description: "Policy created successfully in draft status",
       });
 
       return data;
@@ -422,18 +414,6 @@ export function usePolicies() {
       }
 
       await fetchPolicies();
-      
-      // Send email notification to admins if policy status changed to review
-      const wasUnderReview = currentPolicy.status === 'review';
-      const isNowUnderReview = data.status === 'review';
-      if (isNowUnderReview && !wasUnderReview) {
-        const { sendAdminEmailNotification } = await import('@/utils/emailNotifications');
-        await sendAdminEmailNotification(
-          data.title,
-          data.author,
-          data.id
-        );
-      }
       
       return data;
     } catch (error) {
@@ -615,6 +595,37 @@ export function usePolicies() {
     linkElement.click();
   };
 
+  const transitionPolicyStatus = async (
+    policyId: string,
+    newStatus: 'draft' | 'review' | 'approved' | 'active' | 'archived',
+    rejectionReason?: string
+  ) => {
+    try {
+      const { error } = await supabase.rpc('transition_policy_status', {
+        policy_id_param: policyId,
+        new_status_param: newStatus,
+        rejection_reason_param: rejectionReason || null,
+      });
+
+      if (error) throw error;
+
+      await fetchPolicies();
+      
+      toast({
+        title: "Success",
+        description: `Policy status updated to ${newStatus}`,
+      });
+    } catch (error: any) {
+      console.error('Error transitioning policy status:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update policy status",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
   return {
     policies,
     loading,
@@ -625,6 +636,7 @@ export function usePolicies() {
     getPolicyVersions,
     getAllTags,
     downloadPolicyAsJson,
+    transitionPolicyStatus,
     refreshPolicies: fetchPolicies,
   };
 }

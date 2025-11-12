@@ -74,7 +74,6 @@ export function JsonImportModal({ open, onOpenChange }: JsonImportModalProps) {
         content: parsedPolicy.content,
         type: parsedPolicy.type,
         tags: parsedPolicy.tags,
-        status: 'draft',
       });
 
       toast({
