@@ -50,9 +50,11 @@ export const NotificationBell = () => {
   useEffect(() => {
     fetchNotifications();
 
-    // Set up realtime subscription
-    const channel = supabase
-      .channel('notifications-changes')
+    // Set up realtime subscription with unique channel name
+    const channelName = `notifications-changes-${(typeof crypto !== 'undefined' && 'randomUUID' in crypto) ? crypto.randomUUID() : Math.random().toString(36).slice(2)}`;
+    const channel = supabase.channel(channelName);
+    
+    channel
       .on(
         'postgres_changes',
         {
@@ -67,6 +69,7 @@ export const NotificationBell = () => {
       .subscribe();
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, []);

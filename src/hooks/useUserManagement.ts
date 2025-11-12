@@ -123,9 +123,11 @@ export const useUserManagement = () => {
   useEffect(() => {
     fetchUsers();
 
-    // Set up realtime subscription for user_roles changes
-    const channel = supabase
-      .channel('user-management-changes')
+    // Set up realtime subscription for user_roles changes with unique channel name
+    const channelName = `user-management-changes-${(typeof crypto !== 'undefined' && 'randomUUID' in crypto) ? crypto.randomUUID() : Math.random().toString(36).slice(2)}`;
+    const channel = supabase.channel(channelName);
+    
+    channel
       .on(
         'postgres_changes',
         {
@@ -140,6 +142,7 @@ export const useUserManagement = () => {
       .subscribe();
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, []);
