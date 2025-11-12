@@ -505,14 +505,7 @@ export type Database = {
       }
     }
     Views: {
-      v_user_current_role: {
-        Row: {
-          created_at: string | null
-          role: Database["public"]["Enums"]["app_role"] | null
-          user_id: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       has_role: {
