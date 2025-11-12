@@ -6,6 +6,7 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PolicySectionsView } from "@/components/PolicySectionsView";
+import { PolicySubmitForReview } from "@/components/PolicySubmitForReview";
 import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { 
@@ -40,25 +41,47 @@ export function PolicyDetail({
   onViewVersionHistory,
   onClose 
 }: PolicyDetailProps) {
-  const { isAdmin } = useUserRole();
+  const { isAdmin, role } = useUserRole();
   const [isOwner, setIsOwner] = useState(false);
+  const [policyStatus, setPolicyStatus] = useState(policy.status);
+  const [reviewerId, setReviewerId] = useState<string | null>(null);
 
-  // Check if current user is the policy owner
+  // Check if current user is the policy owner and fetch policy details
   useEffect(() => {
     const checkOwnership = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const { data: policyData } = await supabase
           .from('policies')
-          .select('created_by')
+          .select('created_by, status, reviewer_id')
           .eq('id', policy.policy_id)
           .single();
         
-        setIsOwner(policyData?.created_by === user.id);
+        if (policyData) {
+          setIsOwner(policyData.created_by === user.id);
+          setPolicyStatus(policyData.status);
+          setReviewerId(policyData.reviewer_id);
+        }
       }
     };
     checkOwnership();
   }, [policy.policy_id]);
+
+  const handleSubmitSuccess = () => {
+    // Refresh policy status after submission
+    const fetchStatus = async () => {
+      const { data } = await supabase
+        .from('policies')
+        .select('status, reviewer_id')
+        .eq('id', policy.policy_id)
+        .single();
+      if (data) {
+        setPolicyStatus(data.status);
+        setReviewerId(data.reviewer_id);
+      }
+    };
+    fetchStatus();
+  };
 
   const canModify = isAdmin || isOwner;
 
@@ -293,7 +316,18 @@ export function PolicyDetail({
               </Button>
             )}
           </div>
-          {canModify && (
+          
+          {/* Submit for Review Button - only for owners of draft policies */}
+          {isOwner && policyStatus === 'draft' && (role === 'editor' || role === 'admin') && (
+            <PolicySubmitForReview 
+              policyId={policy.policy_id}
+              policyTitle={policy.title}
+              currentReviewerId={reviewerId}
+              onSuccess={handleSubmitSuccess}
+            />
+          )}
+          
+          {canModify && policyStatus === 'draft' && (
             <Button onClick={onEdit} className="w-full">
               <EditIcon className="h-4 w-4 mr-2" />
               Edit Policy
