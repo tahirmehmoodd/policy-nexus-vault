@@ -62,9 +62,11 @@ export const useUserRole = () => {
 
     fetchUserRole();
 
-    // Set up realtime subscription for role changes
-    const channel = supabase
-      .channel('user-roles-changes')
+    // Set up realtime subscription for role changes with unique channel name
+    const channelName = `user-roles-changes-${(typeof crypto !== 'undefined' && 'randomUUID' in crypto) ? crypto.randomUUID() : Math.random().toString(36).slice(2)}`;
+    const channel = supabase.channel(channelName);
+
+    channel
       .on(
         'postgres_changes',
         {
@@ -79,6 +81,7 @@ export const useUserRole = () => {
       .subscribe();
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, []);
