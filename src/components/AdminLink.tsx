@@ -4,10 +4,13 @@ import { useNavigate } from 'react-router-dom';
 import { useUserRole } from '@/hooks/useUserRole';
 
 export const AdminLink = () => {
-  const { isAdmin } = useUserRole();
+  const { isAdmin, role } = useUserRole();
   const navigate = useNavigate();
 
-  if (!isAdmin) return null;
+  // Show for both admins and reviewers
+  const canAccessDashboard = isAdmin || role === 'reviewer';
+  
+  if (!canAccessDashboard) return null;
 
   return (
     <Button
@@ -16,7 +19,7 @@ export const AdminLink = () => {
       className="gap-2"
     >
       <Shield className="h-4 w-4" />
-      Admin Dashboard
+      {isAdmin ? 'Admin' : 'Reviewer'} Dashboard
     </Button>
   );
 };
