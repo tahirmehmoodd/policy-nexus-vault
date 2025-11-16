@@ -109,8 +109,6 @@ The content differences would be highlighted here in a real application.
   const content1 = version1 ? getVersionContent(version1) : "";
   const content2 = version2 ? getVersionContent(version2) : "";
   
-  const { text1, text2 } = highlightDifferences(content1, content2);
-  
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[800px] sm:h-[600px] flex flex-col">
@@ -164,13 +162,13 @@ The content differences would be highlighted here in a real application.
             <div className="flex-1 border-r">
               <div className="p-2 bg-muted font-medium text-sm border-b">Version {version1 && getVersionInfo(version1)?.version_label}</div>
               <ScrollArea className="h-[calc(100%-33px)]">
-                <div className="p-4 text-sm whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: text1 }} />
+                <div className="p-4 text-sm whitespace-pre-wrap">{content1}</div>
               </ScrollArea>
             </div>
             <div className="flex-1">
               <div className="p-2 bg-muted font-medium text-sm border-b">Version {version2 && getVersionInfo(version2)?.version_label}</div>
               <ScrollArea className="h-[calc(100%-33px)]">
-                <div className="p-4 text-sm whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: text2 }} />
+                <div className="p-4 text-sm whitespace-pre-wrap">{content2}</div>
               </ScrollArea>
             </div>
           </div>
