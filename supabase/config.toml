@@ -4,4 +4,4 @@ project_id = "fqpflhvwxwkadzminjhj"
 verify_jwt = false
 
 [functions.send-policy-notification]
-verify_jwt = false
+verify_jwt = true
