@@ -33,7 +33,7 @@ interface Policy {
 }
 
 export default function AdminDashboard() {
-  const { isAdmin, loading: roleLoading } = useUserRole();
+  const { isAdmin, role, loading: roleLoading } = useUserRole();
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [loading, setLoading] = useState(true);
   const [rejectionReason, setRejectionReason] = useState('');
@@ -42,22 +42,25 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Allow both admins and reviewers to access this dashboard
+  const canAccessDashboard = isAdmin || role === 'reviewer';
+
   useEffect(() => {
-    if (!roleLoading && !isAdmin) {
+    if (!roleLoading && !canAccessDashboard) {
       toast({
         title: "Access Denied",
-        description: "You don't have permission to access the admin dashboard",
+        description: "You don't have permission to access this dashboard",
         variant: "destructive",
       });
       navigate('/');
     }
-  }, [isAdmin, roleLoading, navigate, toast]);
+  }, [canAccessDashboard, roleLoading, navigate, toast]);
 
   useEffect(() => {
-    if (isAdmin) {
+    if (canAccessDashboard) {
       fetchPolicies();
     }
-  }, [isAdmin]);
+  }, [canAccessDashboard]);
 
   const fetchPolicies = async () => {
     try {
@@ -210,19 +213,21 @@ export default function AdminDashboard() {
     );
   }
 
-  if (!isAdmin) {
+  if (!canAccessDashboard) {
     return null;
   }
 
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="mb-8">
-        <h1 className="text-4xl font-bold mb-2">Admin Dashboard</h1>
-        <p className="text-muted-foreground">Manage policies, users, and system settings</p>
+        <h1 className="text-4xl font-bold mb-2">{isAdmin ? 'Admin' : 'Reviewer'} Dashboard</h1>
+        <p className="text-muted-foreground">
+          {isAdmin ? 'Manage policies, users, and system settings' : 'Review and approve policies'}
+        </p>
       </div>
 
       <Tabs defaultValue="review" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 mb-6">
+        <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-4' : 'grid-cols-3'} mb-6`}>
           <TabsTrigger value="review" className="flex items-center gap-2">
             <Clock className="h-4 w-4" />
             Review ({policies.filter(p => p.status === 'review').length})
@@ -235,10 +240,12 @@ export default function AdminDashboard() {
             <Eye className="h-4 w-4" />
             Active ({policies.filter(p => p.status === 'active').length})
           </TabsTrigger>
-          <TabsTrigger value="users" className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            Users
-          </TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger value="users" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Users
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="review">{policies.filter(p => p.status === 'review').length === 0 ? (
@@ -377,13 +384,15 @@ export default function AdminDashboard() {
                         <Eye className="h-4 w-4 mr-2" />
                         View Details
                       </Button>
-                      <Button
-                        onClick={() => handlePublish(policy.id)}
-                        className="flex-1 bg-blue-600 hover:bg-blue-700"
-                      >
-                        <CheckCircle className="h-4 w-4 mr-2" />
-                        Publish to Active
-                      </Button>
+                      {isAdmin && (
+                        <Button
+                          onClick={() => handlePublish(policy.id)}
+                          className="flex-1 bg-blue-600 hover:bg-blue-700"
+                        >
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                          Publish to Active
+                        </Button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -448,14 +457,16 @@ export default function AdminDashboard() {
                         <Eye className="h-4 w-4 mr-2" />
                         View Details
                       </Button>
-                      <Button
-                        onClick={() => handleArchive(policy.id)}
-                        variant="destructive"
-                        className="flex-1"
-                      >
-                        <XCircle className="h-4 w-4 mr-2" />
-                        Archive
-                      </Button>
+                      {isAdmin && (
+                        <Button
+                          onClick={() => handleArchive(policy.id)}
+                          variant="destructive"
+                          className="flex-1"
+                        >
+                          <XCircle className="h-4 w-4 mr-2" />
+                          Archive
+                        </Button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -465,7 +476,17 @@ export default function AdminDashboard() {
         </TabsContent>
 
         <TabsContent value="users">
-          <UserRoleManagement />
+          {isAdmin ? (
+            <UserRoleManagement />
+          ) : (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <Users className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+                <p className="text-xl font-semibold mb-2">Admin Access Required</p>
+                <p className="text-muted-foreground">Only admins can manage user roles</p>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
 
